@@ -1,0 +1,47 @@
+[
+  {
+    "license_plate": "T0172",
+    "make": "toyota",
+    "model": "corolla",
+    "year": 2022,
+    "trim_or_engine": null,
+    "notes": null,
+    "severe_service_flags": null
+  },
+  {
+    "license_plate": "T15555",
+    "make": "Ford",
+    "model": "F-150",
+    "year": 2021,
+    "trim_or_engine": null,
+    "notes": null,
+    "severe_service_flags": null
+  },
+  {
+    "license_plate": "A12324",
+    "make": "Ford",
+    "model": "F-150",
+    "year": 2021,
+    "trim_or_engine": null,
+    "notes": null,
+    "severe_service_flags": null
+  },
+  {
+    "license_plate": "A123244",
+    "make": "Ford",
+    "model": "F-150",
+    "year": 2021,
+    "trim_or_engine": null,
+    "notes": null,
+    "severe_service_flags": null
+  },
+  {
+    "license_plate": "T11111",
+    "make": "Toyota",
+    "model": "Corolla",
+    "year": 2022,
+    "trim_or_engine": null,
+    "notes": null,
+    "severe_service_flags": null
+  }
+]

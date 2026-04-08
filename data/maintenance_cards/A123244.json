@@ -1,0 +1,14 @@
+{
+  "license_plate": "A123244",
+  "events": [
+    {
+      "card_id": "A123244-2026-04-07",
+      "produced_at": "2026-04-07T14:58:10.294247+00:00",
+      "mileage_km": null,
+      "items": {
+        "tire_rotation": "failure",
+        "engine_oil": "routine"
+      }
+    }
+  ]
+}

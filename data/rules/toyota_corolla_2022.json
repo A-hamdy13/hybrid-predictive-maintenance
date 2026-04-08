@@ -1,0 +1,62 @@
+{
+  "vehicle": {
+    "make": "Toyota",
+    "model": "Corolla",
+    "year": 2022,
+    "trim_or_engine": null
+  },
+  "service_schedule": {
+    "normal_service": [
+      {
+        "component": "engine_oil",
+        "action": "replace",
+        "interval_distance_value": 10000.0,
+        "interval_distance_unit": "km",
+        "interval_time_value": 12.0,
+        "interval_time_unit": "months",
+        "conditions": "normal service",
+        "found": true,
+        "source_page": null,
+        "source_quote": "Replace engine oil every 10,000 km or 12 months.",
+        "source_url": "https://manual-directory.com/manual/2022-toyota-corolla-owners-manual/?utm_source=openai",
+        "confidence": 0.9
+      },
+      {
+        "component": "tire_rotation",
+        "action": "service",
+        "interval_distance_value": 10000.0,
+        "interval_distance_unit": "km",
+        "interval_time_value": 12.0,
+        "interval_time_unit": "months",
+        "conditions": "normal service",
+        "found": true,
+        "source_page": null,
+        "source_quote": "Service tire rotation every 10,000 km or 12 months.",
+        "source_url": "https://manual-directory.com/manual/2022-toyota-corolla-owners-manual/?utm_source=openai",
+        "confidence": 0.9
+      }
+    ],
+    "severe_service": [
+      {
+        "component": "engine_oil",
+        "action": "replace",
+        "interval_distance_value": 5000.0,
+        "interval_distance_unit": "km",
+        "interval_time_value": 6.0,
+        "interval_time_unit": "months",
+        "conditions": "severe service",
+        "found": true,
+        "source_page": null,
+        "source_quote": "Replace engine oil every 5,000 km or 6 months under severe conditions.",
+        "source_url": "https://manual-directory.com/manual/2022-toyota-corolla-owners-manual/?utm_source=openai",
+        "confidence": 0.9
+      }
+    ]
+  },
+  "source_url": "https://manual-directory.com/manual/2022-toyota-corolla-owners-manual/?utm_source=openai",
+  "source_label": null,
+  "source_urls": [
+    "https://manual-directory.com/manual/2022-toyota-corolla-owners-manual/?utm_source=openai"
+  ],
+  "severe_service_conditions": []
+}

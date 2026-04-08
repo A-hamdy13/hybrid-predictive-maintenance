@@ -1,0 +1,75 @@
+{
+  "vehicle": {
+    "make": "Freightliner",
+    "model": "Cascadia",
+    "year": 2022,
+    "trim_or_engine": null
+  },
+  "service_schedule": {
+    "normal_service": [
+      {
+        "component": "battery",
+        "action": "check",
+        "interval_distance_value": 80000.0,
+        "interval_distance_unit": "km",
+        "interval_time_value": null,
+        "interval_time_unit": null,
+        "conditions": "normal service",
+        "found": true,
+        "source_page": null,
+        "source_quote": "Alternator, Battery, and Starter Check",
+        "source_url": "https://www.getmaintainx.com/procedures/d/9Ni02HFTBjE/freightliner-cascadia-ca113slp-maintenance-procedures-maintenance-procedures-every-80-000-km",
+        "confidence": 1.0
+      },
+      {
+        "component": "transmission_fluid",
+        "action": "inspect",
+        "interval_distance_value": 80000.0,
+        "interval_distance_unit": "km",
+        "interval_time_value": null,
+        "interval_time_unit": null,
+        "conditions": "normal service",
+        "found": true,
+        "source_page": null,
+        "source_quote": "DetroitTM Automated Transmission Fluid Level Inspection",
+        "source_url": "https://www.getmaintainx.com/procedures/d/9Ni02HFTBjE/freightliner-cascadia-ca113slp-maintenance-procedures-maintenance-procedures-every-80-000-km",
+        "confidence": 1.0
+      },
+      {
+        "component": "fuel_filter",
+        "action": "replace",
+        "interval_distance_value": 80000.0,
+        "interval_distance_unit": "km",
+        "interval_time_value": null,
+        "interval_time_unit": null,
+        "conditions": "normal service",
+        "found": true,
+        "source_page": null,
+        "source_quote": "Fuel Filter Replacement",
+        "source_url": "https://www.getmaintainx.com/procedures/d/9Ni02HFTBjE/freightliner-cascadia-ca113slp-maintenance-procedures-maintenance-procedures-every-80-000-km",
+        "confidence": 1.0
+      },
+      {
+        "component": "air_filter",
+        "action": "replace",
+        "interval_distance_value": 80000.0,
+        "interval_distance_unit": "km",
+        "interval_time_value": null,
+        "interval_time_unit": null,
+        "conditions": "normal service",
+        "found": true,
+        "source_page": null,
+        "source_quote": "Air Filter Replacement",
+        "source_url": "https://www.getmaintainx.com/procedures/d/9Ni02HFTBjE/freightliner-cascadia-ca113slp-maintenance-procedures-maintenance-procedures-every-80-000-km",
+        "confidence": 1.0
+      }
+    ],
+    "severe_service": []
+  },
+  "source_url": "https://www.getmaintainx.com/procedures/d/9Ni02HFTBjE/freightliner-cascadia-ca113slp-maintenance-procedures-maintenance-procedures-every-80-000-km",
+  "source_label": null,
+  "source_urls": [
+    "https://www.getmaintainx.com/procedures/d/9Ni02HFTBjE/freightliner-cascadia-ca113slp-maintenance-procedures-maintenance-procedures-every-80-000-km"
+  ],
+  "severe_service_conditions": []
+}

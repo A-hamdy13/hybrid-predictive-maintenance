@@ -1,0 +1,1777 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Predictive Maintenance</title>
+  <style>
+    :root {
+      --bg: #0f0f12;
+      --surface: #18181c;
+      --border: #2a2a30;
+      --text: #e4e4e7;
+      --muted: #71717a;
+      --green: #22c55e;
+      --yellow: #eab308;
+      --red: #ef4444;
+      --accent: #3b82f6;
+    }
+    * { box-sizing: border-box; }
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      margin: 0;
+      padding: 1.5rem;
+      line-height: 1.5;
+      max-width: 720px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    h1 { font-size: 1.25rem; font-weight: 600; margin: 0 0 1.5rem; color: var(--text); }
+    section { margin-bottom: 1.5rem; }
+    label { display: block; font-size: 0.8rem; color: var(--muted); margin-bottom: 0.25rem; }
+    input, select, button, textarea {
+      width: 100%;
+      padding: 0.5rem 0.6rem;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text);
+      font-size: 0.9rem;
+    }
+    input::placeholder, textarea::placeholder { color: var(--muted); }
+    button {
+      cursor: pointer;
+      background: var(--accent);
+      border: none;
+      color: #fff;
+      font-weight: 500;
+      margin-top: 0.5rem;
+    }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+    button.secondary { background: var(--surface); color: var(--text); border: 1px solid var(--border); }
+    .row { display: flex; gap: 0.75rem; align-items: flex-end; flex-wrap: wrap; }
+    .row > * { flex: 1; min-width: 120px; }
+    .toggle-wrap { display: flex; align-items: center; gap: 0.5rem; margin: 0.5rem 0; }
+    .toggle-wrap input[type="checkbox"] { width: auto; }
+    .result-box {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1rem;
+      margin-top: 1rem;
+      white-space: pre-wrap;
+      font-size: 0.9rem;
+    }
+    .result-box .priority-green { color: var(--green); }
+    .result-box .priority-yellow { color: var(--yellow); }
+    .result-box .priority-red { color: var(--red); }
+    .status-dot {
+      display: inline-block;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      margin-right: 8px;
+      vertical-align: middle;
+    }
+    .status-dot--green { background: var(--green); }
+    .status-dot--yellow { background: var(--yellow); }
+    .status-dot--red { background: var(--red); }
+    .result-line { margin: 0.35em 0; }
+    .error { color: var(--red); font-size: 0.85rem; margin-top: 0.5rem; }
+    .muted { color: var(--muted); font-size: 0.8rem; }
+    #otherVehicle { margin-top: 0.75rem; }
+    #otherVehicle .row { margin-bottom: 0.5rem; }
+    .btn-wrap { display: flex; align-items: center; gap: 0.75rem; margin-top: 0.5rem; flex-wrap: wrap; }
+    .btn-wrap button { margin-top: 0; flex: 0 0 auto; }
+    .loading-spinner {
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      border: 2px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      flex-shrink: 0;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .loading-text { color: var(--muted); font-size: 0.9rem; display: inline-flex; align-items: center; gap: 8px; }
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.6);
+      z-index: 100;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+      overflow: auto;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      max-width: 640px;
+      width: 100%;
+      max-height: 90vh;
+      overflow: auto;
+      padding: 1.25rem;
+    }
+    .modal h2 { font-size: 1.1rem; margin: 0 0 1rem; }
+    .rule-item-card {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.75rem;
+      margin-bottom: 0.75rem;
+    }
+    .rule-item-card .row { margin-bottom: 0.5rem; }
+    .rule-item-card .row:last-child { margin-bottom: 0; }
+    .rule-item-card label { font-size: 0.75rem; }
+    .rule-item-card input, .rule-item-card select, .rule-item-card textarea { padding: 0.4rem 0.5rem; font-size: 0.85rem; }
+    .rule-item-card textarea { min-height: 2.5rem; resize: vertical; }
+    .rule-item-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; }
+    .rule-item-header strong { font-size: 0.9rem; }
+    .btn-remove { padding: 0.25rem 0.5rem; font-size: 0.8rem; background: var(--red); color: #fff; border: none; border-radius: 4px; cursor: pointer; }
+    .btn-add-row { margin-top: 0.5rem; margin-bottom: 1rem; }
+    .modal-actions { display: flex; gap: 0.5rem; margin-top: 1rem; flex-wrap: wrap; }
+    .modal-actions button { margin-top: 0; }
+    #maintenanceCardTableBody tr.part-red { outline: 2px solid var(--red); outline-offset: -2px; }
+    #maintenanceCardTableBody tr.part-yellow { outline: 2px solid var(--yellow); outline-offset: -2px; }
+    #maintenanceCardTableBody tr.part-green { outline: 2px solid var(--green); outline-offset: -2px; }
+  </style>
+</head>
+<body>
+  <div style="display:flex; justify-content:space-between; align-items:center; gap:0.75rem; margin-bottom:0.6rem;">
+    <h1 id="appTitle" style="margin:0;">Hybrid Predictive Maintenance</h1>
+    <div style="display:flex; align-items:center; gap:0.5rem;">
+      <span id="uiLanguageLabel" class="muted" style="margin:0;">Language</span>
+      <div id="uiLanguageButtons" style="display:flex; gap:0.35rem;">
+        <button type="button" class="secondary lang-btn" data-lang="en" style="width:auto; margin-top:0;">EN</button>
+        <button type="button" class="secondary lang-btn" data-lang="ar" style="width:auto; margin-top:0;">AR</button>
+        <button type="button" class="secondary lang-btn" data-lang="hi" style="width:auto; margin-top:0;">HI</button>
+      </div>
+      <button type="button" id="btnDownloadWalkthrough" class="secondary" style="width:auto; margin-top:0;">Download walkthrough</button>
+      <button type="button" id="btnLogout" class="secondary" style="width:auto; margin-top:0;">Logout</button>
+    </div>
+  </div>
+  <section>
+    <label id="lblDriverLogin">Driver login</label>
+    <div class="row" style="align-items:center;">
+      <select id="driverSelect"></select>
+      <button type="button" id="btnDriverLogin" class="secondary" style="margin-top:0;">Login as driver</button>
+    </div>
+    <p id="driverLoginLabel" class="muted" style="display:none; margin-top:0.4rem;"></p>
+  </section>
+
+  <section>
+    <label id="lblAssignedVehicles">Your assigned vehicles (license plate)</label>
+    <div class="row" style="align-items: center; gap: 0.5rem;">
+      <select id="licensePlateSelect" style="flex: 1; min-width: 220px;">
+        <option value="">Loading…</option>
+      </select>
+      <button type="button" id="btnAddVehicle" class="secondary" style="margin-top:0; display:none;">Add vehicle</button>
+    </div>
+    <div id="addVehicleForm" style="display:none; margin-top:0.75rem; padding:0.75rem; background:var(--surface); border:1px solid var(--border); border-radius:8px;">
+      <p class="muted" id="txtRegisterVehicleHelp" style="margin:0 0 0.5rem;">Register a vehicle by license plate. Recommendations will be logged to this vehicle.</p>
+      <div class="row">
+        <input type="text" id="newLicensePlate" placeholder="License plate (e.g. T01721)" />
+        <input type="text" id="newMake" placeholder="Make" />
+        <input type="text" id="newModel" placeholder="Model" />
+      </div>
+      <div class="row">
+        <input type="number" id="newYear" placeholder="Year" min="1990" max="2030" />
+        <input type="text" id="newTrim" placeholder="Trim / engine (optional)" style="flex:2;" />
+      </div>
+      <div class="btn-wrap">
+        <button type="button" id="btnSubmitVehicle">Save vehicle</button>
+        <button type="button" id="btnCancelAddVehicle" class="secondary">Cancel</button>
+      </div>
+    </div>
+    <p id="selectedVehicleLabel" class="muted" style="margin-top:0.5rem; display:none;"></p>
+    <section id="maintenanceCardSection" style="display:none; margin-top:0.75rem;">
+      <label id="lblMaintenanceCards">Maintenance cards</label>
+      <div class="btn-wrap" style="margin-top:0.25rem;">
+        <button type="button" id="btnShowEnterCard">Enter maintenance card</button>
+        <button type="button" id="btnShowHistory" class="secondary">View maintenance history</button>
+        <button type="button" id="btnShowSimplified" class="secondary">View simplified maintenance card</button>
+        <button type="button" id="btnDownloadTemplate" class="secondary">Download Maintenance card template</button>
+        <button type="button" id="btnUploadCard" class="secondary">Upload Maintenance card</button>
+        <input type="file" id="uploadCardInput" accept="image/*" capture="environment" style="display:none;" />
+      </div>
+
+      <div id="maintenanceEnterView" style="display:none; margin-top:0.75rem;">
+        <div class="row" style="align-items:center; justify-content:space-between;">
+          <p class="muted" id="maintenanceCurrentMileage" style="margin:0; font-size:0.85rem;">Current mileage: —</p>
+        </div>
+        <div id="maintenanceCardTableWrap" style="overflow:auto; margin-bottom:0.5rem;">
+          <table id="maintenanceCardTable" style="width:100%; border-collapse:collapse; font-size:0.85rem;">
+            <thead>
+              <tr style="background:var(--border);">
+                <th style="text-align:left; padding:0.4rem; border:1px solid var(--border);">Part</th>
+                <th style="text-align:left; padding:0.4rem; border:1px solid var(--border);">Routine maintenance</th>
+                <th style="text-align:left; padding:0.4rem; border:1px solid var(--border);">Failure maintenance</th>
+                <th style="text-align:left; padding:0.4rem; border:1px solid var(--border);">Last serviced date</th>
+                <th style="text-align:left; padding:0.4rem; border:1px solid var(--border);">Last serviced mileage</th>
+                <th style="text-align:left; padding:0.4rem; border:1px solid var(--border);">Recommended service interval: time</th>
+                <th style="text-align:left; padding:0.4rem; border:1px solid var(--border);">Recommended service interval: mileage</th>
+              </tr>
+            </thead>
+            <tbody id="maintenanceCardTableBody"></tbody>
+          </table>
+        </div>
+        <div class="btn-wrap">
+          <button type="button" id="btnSaveCard">Submit</button>
+        </div>
+      </div>
+
+      <div id="maintenanceHistoryView" style="display:none; margin-top:0.75rem;">
+        <div id="maintenanceHistoryTableWrap" style="overflow:auto;"></div>
+      </div>
+
+    </section>
+  </section>
+
+  <section>
+    <label id="lblVehicleRulesSource">Vehicle (rules source)</label>
+    <div class="row" style="align-items: center; gap: 0.5rem;">
+      <select id="vehicleSelect" style="flex: 1; min-width: 200px;">
+        <option value="">Loading…</option>
+      </select>
+    </div>
+    <p class="muted" id="vehicleSelectHint" style="display:none; font-size:0.85rem; margin-top:0.25rem;">Rules are set automatically when you select a vehicle above.</p>
+    <div id="otherVehicle" style="display:none;">
+      <p class="muted" id="txtOtherVehicleHelp">Enter make, model, year. The agent will find the manual, parse it, and store rules (or paste a URL below to use that instead).</p>
+      <div class="row">
+        <input type="text" id="make" placeholder="Make" />
+        <input type="text" id="model" placeholder="Model" />
+        <input type="number" id="year" placeholder="Year" min="1990" max="2030" />
+      </div>
+      <div class="row">
+        <input type="text" id="trim" placeholder="Trim / engine (optional)" />
+      </div>
+      <label class="muted" id="lblManualUrl">Manual PDF or page URL (optional)</label>
+      <input type="url" id="manualUrl" placeholder="Leave empty for agent to find manual" />
+      <div class="btn-wrap">
+        <button type="button" id="btnFindAndExtract" class="secondary">Find manual & extract rules</button>
+        <span id="findExtractLoading" style="display:none;" class="loading-text"><span class="loading-spinner"></span><span id="findExtractLoadingText"> Finding manual & extracting rules…</span></span>
+      </div>
+      <div id="extractResult" class="result-box" style="display:none;"></div>
+      <div id="extractError" class="error"></div>
+    </div>
+  </section>
+
+  <section id="operationalInputsSection">
+    <label id="lblOperationalInputs">Operational inputs</label>
+    <p class="muted" id="operationalInputsHint" style="display:none; margin-bottom:0.5rem;">Shown only for components that have intervals in this vehicle's rules.</p>
+    <div id="operationalInputsContainer">
+      <div class="row" data-show-when="current_mileage">
+        <input type="number" id="currentMileage" placeholder="Current mileage (km)" step="1000" />
+      </div>
+      <div class="row" data-show-when="engine_oil">
+        <input type="number" id="monthsSinceOil" placeholder="Months since oil change" step="0.5" />
+        <input type="number" id="mileageSinceOil" placeholder="km since oil change" step="100" />
+      </div>
+      <div class="row" data-show-when="brake_inspection">
+        <input type="number" id="mileageSinceBrake" placeholder="km since brake service" step="100" />
+      </div>
+      <div class="row" data-show-when="tire_rotation">
+        <input type="number" id="mileageSinceTire" placeholder="km since tire rotation" step="100" />
+      </div>
+      <div class="row" data-show-when="battery">
+        <input type="number" id="batteryAgeMonths" placeholder="Battery age (months)" step="1" />
+      </div>
+      <div data-show-when="mlTelemetry" class="ml-telemetry-block">
+        <p class="muted" id="txtTelemetryHelp" style="margin-bottom:0.5rem;">Telemetry for ML (fill when using ML prediction).</p>
+        <div class="row">
+          <input type="number" id="engineRpm" placeholder="Engine RPM" step="100" />
+          <input type="number" id="engineTemp" placeholder="Engine temp (°C)" step="1" />
+          <input type="number" id="oilPressure" placeholder="Oil pressure (psi)" step="1" />
+        </div>
+        <div class="row">
+          <input type="number" id="batteryVoltage" placeholder="Battery voltage (V)" step="0.1" />
+          <input type="number" id="tirePressure" placeholder="Tire pressure (psi)" step="1" />
+          <input type="number" id="fuelConsumptionLph" placeholder="Fuel consumption (L/h)" step="0.1" />
+        </div>
+        <div class="row">
+          <input type="number" id="coolantTempC" placeholder="Coolant temp (°C)" step="1" />
+          <input type="number" id="fuelLevelPercent" placeholder="Fuel level (%)" step="1" />
+          <input type="number" id="engineLoadPercent" placeholder="Engine load (%)" step="1" />
+          <input type="number" id="throttlePosPercent" placeholder="Throttle position (%)" step="1" />
+        </div>
+        <div class="row">
+          <input type="number" id="airFlowRateGps" placeholder="Air flow (g/s)" step="0.1" />
+          <input type="number" id="exhaustGasTempC" placeholder="Exhaust gas temp (°C)" step="1" />
+          <input type="number" id="vibrationLevel" placeholder="Vibration level" step="0.1" />
+          <input type="number" id="engineHours" placeholder="Engine hours" step="1" />
+        </div>
+        <div class="row">
+          <input type="number" id="brakeFluidLevelPsi" placeholder="Brake fluid (psi)" step="1" />
+          <input type="number" id="brakePadWearMm" placeholder="Brake pad wear (mm)" step="0.1" />
+          <input type="number" id="brakeTempC" placeholder="Brake temp (°C)" step="1" />
+          <input type="number" id="absFaultIndicator" placeholder="ABS fault (0/1)" step="1" min="0" max="1" />
+        </div>
+        <div class="row">
+          <input type="number" id="brakePedalPosPercent" placeholder="Brake pedal position (%)" step="1" />
+          <input type="number" id="wheelSpeedFlKph" placeholder="Wheel FL (kph)" step="1" />
+          <input type="number" id="wheelSpeedFrKph" placeholder="Wheel FR (kph)" step="1" />
+          <input type="number" id="wheelSpeedRlKph" placeholder="Wheel RL (kph)" step="1" />
+          <input type="number" id="wheelSpeedRrKph" placeholder="Wheel RR (kph)" step="1" />
+        </div>
+        <div class="row">
+          <input type="number" id="batteryCurrentA" placeholder="Battery current (A)" step="0.1" />
+          <input type="number" id="batteryTempC" placeholder="Battery temp (°C)" step="1" />
+          <input type="number" id="alternatorOutputV" placeholder="Alternator (V)" step="0.1" />
+          <input type="number" id="batteryChargePercent" placeholder="Battery charge (%)" step="1" />
+          <input type="number" id="batteryHealthPercent" placeholder="Battery health (%)" step="1" />
+        </div>
+        <div class="row">
+          <input type="number" id="vehicleSpeedKph" placeholder="Vehicle speed (kph)" step="1" />
+          <input type="number" id="ambientTempC" placeholder="Ambient temp (°C)" step="1" />
+          <input type="number" id="humidityPercent" placeholder="Humidity (%)" step="1" />
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="toggle-wrap">
+      <input type="checkbox" id="useMl" />
+      <label for="useMl" id="lblUseMl" style="margin:0;">Use ML prediction (telemetry risk)</label>
+    </div>
+    <div class="toggle-wrap" style="margin-top:0.5rem;">
+      <input type="checkbox" id="useSevereService" />
+      <label for="useSevereService" id="lblUseSevereService" style="margin:0;">Use severe service schedule</label>
+    </div>
+    <p class="muted" id="txtSevereServiceHelp">When off, recommendation is based on normal schedule. Use severe schedule for short-trip, towing, or harsh conditions.</p>
+    <button type="button" id="btnLoadDefaults" class="secondary">Load defaults</button>
+    <button type="button" id="btnLoadFailureScenario" class="secondary">Load failure scenario</button>
+    <button type="button" id="btnRecommend">Get recommendation</button>
+  </section>
+
+  <section>
+    <label id="lblRecommendation">Recommendation</label>
+    <div id="recommendResult" class="result-box" style="display:none;"></div>
+    <div id="recommendError" class="error"></div>
+  </section>
+
+  <div id="rulesModal" class="modal-overlay" aria-hidden="true">
+    <div class="modal">
+      <h2 id="rulesModalTitle">Edit rules</h2>
+      <div id="rulesModalBody"></div>
+      <div class="modal-actions">
+        <button type="button" id="rulesModalSave">Save</button>
+        <button type="button" id="rulesModalCancel" class="secondary">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const API = window.location.origin;
+    const byId = (id) => document.getElementById(id);
+    const UI_LANG_KEY = 'driver_ui_language';
+    const UI_TEXT = {
+      en: {
+        appTitle: 'Hybrid Predictive Maintenance',
+        uiLanguageLabel: 'Language',
+        logout: 'Logout',
+        downloadWalkthrough: 'Download walkthrough',
+        cancel: 'Cancel',
+        recommend: 'Get recommendation',
+        recommendation: 'Recommendation',
+        selectVehicleError: 'Select a vehicle (by license plate) or a vehicle with rules.',
+        telemetryTitle: 'Telemetry (ML):',
+        perComponent: 'Per component:',
+        nearbyMechanics: 'Nearby mechanics (Google Maps)',
+        affiliatedCenters: 'Affiliated repair centers',
+        generalRepair: 'General auto repair',
+        generalRepairSearch: 'Search nearby general auto repair shops',
+        closest: 'Closest',
+        authorizedService: 'Authorized {make} service',
+        authorizedServiceSearch: 'Search authorized {make} service centers',
+        brakeTire: 'Brake & tire shops',
+        brakeTireSearch: 'Search nearby brake & tire shops',
+        rulesOnly: '(Recommendation from manual rules only; ML off)',
+        driverLogin: 'Driver login',
+        loginAsDriver: 'Login as driver',
+        assignedVehicles: 'Your assigned vehicles (license plate)',
+        loading: 'Loading...',
+        addVehicle: 'Add vehicle',
+        registerVehicleHelp: 'Register a vehicle by license plate. Recommendations will be logged to this vehicle.',
+        maintenanceCards: 'Maintenance cards',
+        enterMaintenanceCard: 'Enter maintenance card',
+        viewMaintenanceHistory: 'View maintenance history',
+        viewSimplifiedCard: 'View simplified maintenance card',
+        downloadTemplate: 'Download Maintenance card template',
+        uploadCard: 'Upload Maintenance card',
+        submit: 'Submit',
+        vehicleRulesSource: 'Vehicle (rules source)',
+        rulesAutoHint: 'Rules are set automatically when you select a vehicle above.',
+        otherVehicleHelp: 'Enter make, model, year. The agent will find the manual, parse it, and store rules (or paste a URL below to use that instead).',
+        manualUrlLabel: 'Manual PDF or page URL (optional)',
+        manualUrlPlaceholder: 'Leave empty for agent to find manual',
+        findExtract: 'Find manual & extract rules',
+        findExtractLoading: 'Finding manual & extracting rules...',
+        operationalInputs: 'Operational inputs',
+        operationalInputsHint: "Shown only for components that have intervals in this vehicle's rules.",
+        telemetryHelp: 'Telemetry for ML (fill when using ML prediction).',
+        useMl: 'Use ML prediction (telemetry risk)',
+        useSevere: 'Use severe service schedule',
+        severeHelp: 'When off, recommendation is based on normal schedule. Use severe schedule for short-trip, towing, or harsh conditions.',
+        loadDefaults: 'Load defaults',
+        loadFailureScenario: 'Load failure scenario',
+        phNewLicensePlate: 'License plate (e.g. T01721)',
+        phMake: 'Make',
+        phModel: 'Model',
+        phYear: 'Year',
+        phTrim: 'Trim / engine (optional)',
+        phCurrentMileage: 'Current mileage (km)',
+        phMonthsSinceOil: 'Months since oil change',
+        phMileageSinceOil: 'km since oil change',
+        phMileageSinceBrake: 'km since brake service',
+        phMileageSinceTire: 'km since tire rotation',
+        phBatteryAge: 'Battery age (months)',
+        loginFirst: 'Login as driver first',
+        selectVehicle: '— Select vehicle —',
+        failedToLoad: 'Failed to load',
+        vehicleLabel: 'Vehicle',
+        currentMileageLabel: 'Current mileage'
+        ,noRulesFound: 'No rules found for this vehicle. Ask admin to add matching rules.'
+        ,maintenanceCardSubmitted: 'Maintenance card submitted.'
+        ,failedToSave: 'Failed to save'
+        ,uploadFailed: 'Upload failed'
+        ,recommendationFailed: 'Could not get recommendation right now.'
+        ,maintenanceCardUploaded: 'Maintenance card uploaded. Saved events: {events}, detected marks: {marks}'
+        ,mileageColumns: 'Mileage columns'
+        ,enterVehicleFields: 'Enter license plate, make, and model.'
+        ,enterMakeModel: 'Enter make and model.'
+        ,genericFailed: 'Failed'
+      },
+      ar: {
+        appTitle: 'الصيانة التنبؤية الهجينة',
+        uiLanguageLabel: 'اللغة',
+        logout: 'تسجيل الخروج',
+        downloadWalkthrough: 'تنزيل الدليل',
+        cancel: 'إلغاء',
+        recommend: 'احصل على التوصية',
+        recommendation: 'التوصية',
+        selectVehicleError: 'اختر مركبة (برقم اللوحة) أو مركبة لها قواعد.',
+        telemetryTitle: 'القياسات (ML):',
+        perComponent: 'لكل مكوّن:',
+        nearbyMechanics: 'ورش قريبة (خرائط Google)',
+        affiliatedCenters: 'مراكز الصيانة الشريكة',
+        generalRepair: 'إصلاح سيارات عام',
+        generalRepairSearch: 'ابحث عن ورش إصلاح عامة قريبة',
+        closest: 'الأقرب',
+        authorizedService: 'خدمة {make} المعتمدة',
+        authorizedServiceSearch: 'ابحث عن مراكز خدمة {make} المعتمدة',
+        brakeTire: 'ورش الفرامل والإطارات',
+        brakeTireSearch: 'ابحث عن ورش الفرامل والإطارات القريبة',
+        rulesOnly: '(التوصية من قواعد الدليل فقط؛ تم تعطيل ML)',
+        driverLogin: 'تسجيل دخول السائق',
+        loginAsDriver: 'تسجيل الدخول كسائق',
+        assignedVehicles: 'المركبات المخصصة لك (رقم اللوحة)',
+        loading: 'جارٍ التحميل...',
+        addVehicle: 'إضافة مركبة',
+        registerVehicleHelp: 'سجّل مركبة برقم اللوحة. سيتم تسجيل التوصيات لهذه المركبة.',
+        maintenanceCards: 'بطاقات الصيانة',
+        enterMaintenanceCard: 'إدخال بطاقة صيانة',
+        viewMaintenanceHistory: 'عرض سجل الصيانة',
+        viewSimplifiedCard: 'عرض بطاقة الصيانة المبسطة',
+        downloadTemplate: 'تنزيل نموذج بطاقة الصيانة',
+        uploadCard: 'رفع بطاقة الصيانة',
+        submit: 'إرسال',
+        vehicleRulesSource: 'المركبة (مصدر القواعد)',
+        rulesAutoHint: 'يتم ضبط القواعد تلقائياً عند اختيار مركبة أعلاه.',
+        otherVehicleHelp: 'أدخل الشركة والموديل والسنة. سيعثر الوكيل على الدليل ويحلله ويخزن القواعد (أو الصق رابطاً أدناه).',
+        manualUrlLabel: 'رابط PDF للدليل أو صفحة الدليل (اختياري)',
+        manualUrlPlaceholder: 'اتركه فارغاً ليبحث الوكيل عن الدليل',
+        findExtract: 'ابحث عن الدليل واستخرج القواعد',
+        findExtractLoading: 'جارٍ البحث عن الدليل واستخراج القواعد...',
+        operationalInputs: 'مدخلات التشغيل',
+        operationalInputsHint: 'تظهر فقط للمكونات التي لها فترات في قواعد هذه المركبة.',
+        telemetryHelp: 'بيانات القياس لـ ML (املأها عند استخدام توقع ML).',
+        useMl: 'استخدم توقع ML (مخاطر القياس)',
+        useSevere: 'استخدم جدول الخدمة الشديدة',
+        severeHelp: 'عند الإيقاف، تعتمد التوصية على الجدول العادي. استخدم الشديد للرحلات القصيرة أو السحب أو الظروف القاسية.',
+        loadDefaults: 'تحميل القيم الافتراضية',
+        loadFailureScenario: 'تحميل سيناريو العطل',
+        phNewLicensePlate: 'رقم اللوحة (مثال T01721)',
+        phMake: 'الشركة',
+        phModel: 'الموديل',
+        phYear: 'السنة',
+        phTrim: 'الفئة / المحرك (اختياري)',
+        phCurrentMileage: 'العداد الحالي (كم)',
+        phMonthsSinceOil: 'الأشهر منذ تغيير الزيت',
+        phMileageSinceOil: 'كم منذ تغيير الزيت',
+        phMileageSinceBrake: 'كم منذ صيانة الفرامل',
+        phMileageSinceTire: 'كم منذ تدوير الإطارات',
+        phBatteryAge: 'عمر البطارية (أشهر)',
+        loginFirst: 'سجّل الدخول كسائق أولاً',
+        selectVehicle: '— اختر مركبة —',
+        failedToLoad: 'فشل التحميل',
+        vehicleLabel: 'المركبة',
+        currentMileageLabel: 'العداد الحالي'
+        ,noRulesFound: 'لا توجد قواعد لهذه المركبة. اطلب من المسؤول إضافة قواعد مطابقة.'
+        ,maintenanceCardSubmitted: 'تم إرسال بطاقة الصيانة.'
+        ,failedToSave: 'فشل الحفظ'
+        ,uploadFailed: 'فشل الرفع'
+        ,recommendationFailed: 'تعذر الحصول على التوصية حالياً.'
+        ,maintenanceCardUploaded: 'تم رفع بطاقة الصيانة. الأحداث المحفوظة: {events}، العلامات المكتشفة: {marks}'
+        ,mileageColumns: 'أعمدة المسافة'
+        ,enterVehicleFields: 'أدخل رقم اللوحة والشركة والموديل.'
+        ,enterMakeModel: 'أدخل الشركة والموديل.'
+        ,genericFailed: 'فشل'
+      },
+      hi: {
+        appTitle: 'हाइब्रिड प्रेडिक्टिव मेंटेनेंस',
+        uiLanguageLabel: 'भाषा',
+        logout: 'लॉगआउट',
+        downloadWalkthrough: 'वॉकथ्रू डाउनलोड करें',
+        cancel: 'रद्द करें',
+        recommend: 'सुझाव प्राप्त करें',
+        recommendation: 'सिफारिश',
+        selectVehicleError: 'किसी वाहन का चयन करें (नंबर प्लेट से) या नियम वाले वाहन का चयन करें।',
+        telemetryTitle: 'टेलीमेट्री (ML):',
+        perComponent: 'प्रत्येक कंपोनेंट:',
+        nearbyMechanics: 'नजदीकी मैकेनिक (Google Maps)',
+        affiliatedCenters: 'संबद्ध सर्विस सेंटर',
+        generalRepair: 'जनरल ऑटो रिपेयर',
+        generalRepairSearch: 'नजदीकी जनरल ऑटो रिपेयर खोजें',
+        closest: 'सबसे नजदीकी',
+        authorizedService: 'अधिकृत {make} सर्विस',
+        authorizedServiceSearch: 'अधिकृत {make} सर्विस सेंटर खोजें',
+        brakeTire: 'ब्रेक और टायर शॉप्स',
+        brakeTireSearch: 'नजदीकी ब्रेक और टायर शॉप्स खोजें',
+        rulesOnly: '(सिफारिश केवल मैनुअल नियमों से; ML बंद)',
+        driverLogin: 'ड्राइवर लॉगिन',
+        loginAsDriver: 'ड्राइवर के रूप में लॉगिन',
+        assignedVehicles: 'आपको सौंपे गए वाहन (नंबर प्लेट)',
+        loading: 'लोड हो रहा है...',
+        addVehicle: 'वाहन जोड़ें',
+        registerVehicleHelp: 'नंबर प्लेट से वाहन पंजीकृत करें। सिफारिशें इसी वाहन में लॉग होंगी।',
+        maintenanceCards: 'मेंटेनेंस कार्ड',
+        enterMaintenanceCard: 'मेंटेनेंस कार्ड दर्ज करें',
+        viewMaintenanceHistory: 'मेंटेनेंस इतिहास देखें',
+        viewSimplifiedCard: 'सरलीकृत मेंटेनेंस कार्ड देखें',
+        downloadTemplate: 'मेंटेनेंस कार्ड टेम्पलेट डाउनलोड करें',
+        uploadCard: 'मेंटेनेंस कार्ड अपलोड करें',
+        submit: 'सबमिट',
+        vehicleRulesSource: 'वाहन (नियम स्रोत)',
+        rulesAutoHint: 'ऊपर वाहन चुनने पर नियम अपने आप सेट हो जाते हैं।',
+        otherVehicleHelp: 'मेक, मॉडल, वर्ष दर्ज करें। एजेंट मैनुअल ढूंढेगा, पार्स करेगा और नियम स्टोर करेगा (या नीचे URL पेस्ट करें)।',
+        manualUrlLabel: 'मैनुअल PDF या पेज URL (वैकल्पिक)',
+        manualUrlPlaceholder: 'एजेंट से मैनुअल खोजने के लिए खाली छोड़ें',
+        findExtract: 'मैनुअल खोजें और नियम निकालें',
+        findExtractLoading: 'मैनुअल खोजा जा रहा है और नियम निकाले जा रहे हैं...',
+        operationalInputs: 'ऑपरेशनल इनपुट',
+        operationalInputsHint: 'केवल उन कंपोनेंट्स के लिए दिखता है जिनके इस वाहन के नियमों में अंतराल हैं।',
+        telemetryHelp: 'ML के लिए टेलीमेट्री (ML prediction उपयोग करने पर भरें)।',
+        useMl: 'ML prediction उपयोग करें (टेलीमेट्री जोखिम)',
+        useSevere: 'Severe service schedule उपयोग करें',
+        severeHelp: 'ऑफ होने पर सिफारिश normal schedule पर आधारित होती है। short-trip, towing या harsh conditions में severe schedule उपयोग करें।',
+        loadDefaults: 'डिफ़ॉल्ट भरें',
+        loadFailureScenario: 'फेल्योर परिदृश्य भरें',
+        phNewLicensePlate: 'नंबर प्लेट (जैसे T01721)',
+        phMake: 'मेक',
+        phModel: 'मॉडल',
+        phYear: 'वर्ष',
+        phTrim: 'ट्रिम / इंजन (वैकल्पिक)',
+        phCurrentMileage: 'वर्तमान माइलेज (किमी)',
+        phMonthsSinceOil: 'तेल बदले हुए महीने',
+        phMileageSinceOil: 'तेल बदले हुए किमी',
+        phMileageSinceBrake: 'ब्रेक सर्विस के बाद किमी',
+        phMileageSinceTire: 'टायर रोटेशन के बाद किमी',
+        phBatteryAge: 'बैटरी आयु (महीने)',
+        loginFirst: 'पहले ड्राइवर के रूप में लॉगिन करें',
+        selectVehicle: '— वाहन चुनें —',
+        failedToLoad: 'लोड करने में विफल',
+        vehicleLabel: 'वाहन',
+        currentMileageLabel: 'वर्तमान माइलेज'
+        ,noRulesFound: 'इस वाहन के लिए नियम नहीं मिले। मेल खाते नियम जोड़ने के लिए admin से कहें।'
+        ,maintenanceCardSubmitted: 'मेंटेनेंस कार्ड सबमिट हो गया।'
+        ,failedToSave: 'सेव करने में विफल'
+        ,uploadFailed: 'अपलोड विफल'
+        ,recommendationFailed: 'अभी सिफारिश प्राप्त नहीं हो सकी।'
+        ,maintenanceCardUploaded: 'मेंटेनेंस कार्ड अपलोड हो गया। सेव किए गए इवेंट्स: {events}, detected marks: {marks}'
+        ,mileageColumns: 'माइलेज कॉलम'
+        ,enterVehicleFields: 'नंबर प्लेट, मेक और मॉडल दर्ज करें।'
+        ,enterMakeModel: 'मेक और मॉडल दर्ज करें।'
+        ,genericFailed: 'विफल'
+      }
+    };
+    let currentUiLanguage = 'en';
+
+    function t(key, vars) {
+      const dict = UI_TEXT[currentUiLanguage] || UI_TEXT.en;
+      let text = dict[key] || UI_TEXT.en[key] || key;
+      if (vars) {
+        Object.keys(vars).forEach((k) => {
+          text = text.replaceAll('{' + k + '}', String(vars[k]));
+        });
+      }
+      return text;
+    }
+
+    function setUiLanguage(lang) {
+      currentUiLanguage = UI_TEXT[lang] ? lang : 'en';
+      document.documentElement.lang = currentUiLanguage;
+      document.documentElement.dir = currentUiLanguage === 'ar' ? 'rtl' : 'ltr';
+      localStorage.setItem(UI_LANG_KEY, currentUiLanguage);
+      document.querySelectorAll('.lang-btn[data-lang]').forEach((btn) => {
+        const active = btn.getAttribute('data-lang') === currentUiLanguage;
+        btn.style.background = active ? 'var(--accent)' : 'var(--surface)';
+        btn.style.color = '#fff';
+        btn.style.border = active ? 'none' : '1px solid var(--border)';
+      });
+      byId('appTitle').textContent = t('appTitle');
+      byId('uiLanguageLabel').textContent = t('uiLanguageLabel');
+      byId('btnDownloadWalkthrough').textContent = t('downloadWalkthrough');
+      byId('btnLogout').textContent = t('logout');
+      byId('lblDriverLogin').textContent = t('driverLogin');
+      byId('btnDriverLogin').textContent = t('loginAsDriver');
+      byId('lblAssignedVehicles').textContent = t('assignedVehicles');
+      byId('btnAddVehicle').textContent = t('addVehicle');
+      byId('txtRegisterVehicleHelp').textContent = t('registerVehicleHelp');
+      byId('lblMaintenanceCards').textContent = t('maintenanceCards');
+      byId('btnShowEnterCard').textContent = t('enterMaintenanceCard');
+      byId('btnShowHistory').textContent = t('viewMaintenanceHistory');
+      byId('btnShowSimplified').textContent = t('viewSimplifiedCard');
+      byId('btnDownloadTemplate').textContent = t('downloadTemplate');
+      byId('btnUploadCard').textContent = t('uploadCard');
+      byId('btnSubmitVehicle').textContent = t('submit');
+      byId('btnCancelAddVehicle').textContent = t('cancel');
+      byId('btnSaveCard').textContent = t('submit');
+      byId('lblVehicleRulesSource').textContent = t('vehicleRulesSource');
+      byId('vehicleSelectHint').textContent = t('rulesAutoHint');
+      byId('txtOtherVehicleHelp').textContent = t('otherVehicleHelp');
+      byId('lblManualUrl').textContent = t('manualUrlLabel');
+      byId('btnFindAndExtract').textContent = t('findExtract');
+      byId('findExtractLoadingText').textContent = ' ' + t('findExtractLoading');
+      byId('lblOperationalInputs').textContent = t('operationalInputs');
+      byId('operationalInputsHint').textContent = t('operationalInputsHint');
+      byId('txtTelemetryHelp').textContent = t('telemetryHelp');
+      byId('lblUseMl').textContent = t('useMl');
+      byId('lblUseSevereService').textContent = t('useSevere');
+      byId('txtSevereServiceHelp').textContent = t('severeHelp');
+      byId('btnLoadDefaults').textContent = t('loadDefaults');
+      byId('btnLoadFailureScenario').textContent = t('loadFailureScenario');
+      byId('btnRecommend').textContent = t('recommend');
+      byId('lblRecommendation').textContent = t('recommendation');
+      byId('newLicensePlate').placeholder = t('phNewLicensePlate');
+      byId('newMake').placeholder = t('phMake');
+      byId('newModel').placeholder = t('phModel');
+      byId('newYear').placeholder = t('phYear');
+      byId('newTrim').placeholder = t('phTrim');
+      byId('manualUrl').placeholder = t('manualUrlPlaceholder');
+      byId('make').placeholder = t('phMake');
+      byId('model').placeholder = t('phModel');
+      byId('year').placeholder = t('phYear');
+      byId('trim').placeholder = t('phTrim');
+      byId('currentMileage').placeholder = t('phCurrentMileage');
+      byId('monthsSinceOil').placeholder = t('phMonthsSinceOil');
+      byId('mileageSinceOil').placeholder = t('phMileageSinceOil');
+      byId('mileageSinceBrake').placeholder = t('phMileageSinceBrake');
+      byId('mileageSinceTire').placeholder = t('phMileageSinceTire');
+      byId('batteryAgeMonths').placeholder = t('phBatteryAge');
+      localizeStickyDynamicUi();
+    }
+
+    function localizeStickyDynamicUi() {
+      const licSel = byId('licensePlateSelect');
+      if (licSel && licSel.options.length && !licSel.value) {
+        const txt = (licSel.options[0].textContent || '').trim();
+        if (txt === UI_TEXT.en.loginFirst || txt === UI_TEXT.ar.loginFirst || txt === UI_TEXT.hi.loginFirst) licSel.options[0].textContent = t('loginFirst');
+        if (txt === UI_TEXT.en.selectVehicle || txt === UI_TEXT.ar.selectVehicle || txt === UI_TEXT.hi.selectVehicle) licSel.options[0].textContent = t('selectVehicle');
+        if (txt === UI_TEXT.en.failedToLoad || txt === UI_TEXT.ar.failedToLoad || txt === UI_TEXT.hi.failedToLoad) licSel.options[0].textContent = t('failedToLoad');
+      }
+      const vehSel = byId('vehicleSelect');
+      if (vehSel && vehSel.options.length && !vehSel.value) {
+        const txt = (vehSel.options[0].textContent || '').trim();
+        if (txt === UI_TEXT.en.selectVehicle || txt === UI_TEXT.ar.selectVehicle || txt === UI_TEXT.hi.selectVehicle) vehSel.options[0].textContent = t('selectVehicle');
+        if (txt === UI_TEXT.en.failedToLoad || txt === UI_TEXT.ar.failedToLoad || txt === UI_TEXT.hi.failedToLoad) vehSel.options[0].textContent = t('failedToLoad');
+      }
+      if (currentVehicle && byId('selectedVehicleLabel').style.display !== 'none') {
+        byId('selectedVehicleLabel').textContent = t('vehicleLabel') + ': ' + [currentVehicle.make, currentVehicle.model, currentVehicle.year].filter(Boolean).join(' ') + (currentVehicle.trim_or_engine ? ' (' + currentVehicle.trim_or_engine + ')' : '');
+      }
+      const loginText = byId('driverLoginLabel').textContent || '';
+      if (loginText.startsWith('Logged in as')) {
+        const label = byId('driverSelect').selectedOptions[0]?.textContent || currentDriverId || '';
+        byId('driverLoginLabel').textContent = 'Logged in as: ' + label;
+      }
+      const mileageEl = byId('maintenanceCurrentMileage');
+      if (mileageEl && (mileageEl.textContent || '').includes(':')) {
+        const raw = mileageEl.textContent.split(':').slice(1).join(':').trim() || '—';
+        mileageEl.textContent = t('currentMileageLabel') + ': ' + raw;
+      }
+    }
+
+    function vehicle() {
+      const trimVal = byId('trim').value.trim();
+      return {
+        make: byId('make').value.trim(),
+        model: byId('model').value.trim(),
+        year: parseInt(byId('year').value, 10) || 2023,
+        trim_or_engine: trimVal || null
+      };
+    }
+
+    function setVehicleFromStored(v) {
+      byId('make').value = v.make || '';
+      byId('model').value = v.model || '';
+      byId('year').value = String(v.year || 2023);
+      byId('trim').value = v.trim_or_engine || '';
+    }
+
+    function normalizeText(v) {
+      return String(v || '').trim().toLowerCase();
+    }
+
+    function inputs() {
+      const num = (id) => { const el = document.getElementById(id); if (!el) return null; const v = el.value; return v === '' ? null : parseFloat(v); };
+      const base = {
+        current_mileage_km: num('currentMileage'),
+        months_since_last_oil_change: num('monthsSinceOil'),
+        mileage_since_last_oil_change: num('mileageSinceOil'),
+        mileage_since_brake_service: num('mileageSinceBrake'),
+        mileage_since_tire_rotation: num('mileageSinceTire'),
+        battery_age_months: num('batteryAgeMonths'),
+        engine_rpm: num('engineRpm'),
+        engine_temperature_c: num('engineTemp'),
+        oil_pressure_psi: num('oilPressure'),
+        battery_voltage_v: num('batteryVoltage'),
+        tire_pressure_psi: num('tirePressure'),
+        fuel_consumption_lph: num('fuelConsumptionLph'),
+        vehicle_age_months: null
+      };
+      base.odometer_reading = base.current_mileage_km;
+      base.engine_temp_c = base.engine_temperature_c;
+      base.coolant_temp_c = num('coolantTempC');
+      base.fuel_level_percent = num('fuelLevelPercent');
+      base.engine_load_percent = num('engineLoadPercent');
+      base.throttle_pos_percent = num('throttlePosPercent');
+      base.air_flow_rate_gps = num('airFlowRateGps');
+      base.exhaust_gas_temp_c = num('exhaustGasTempC');
+      base.vibration_level = num('vibrationLevel');
+      base.engine_hours = num('engineHours');
+      base.brake_fluid_level_psi = num('brakeFluidLevelPsi');
+      base.brake_pad_wear_mm = num('brakePadWearMm');
+      base.brake_temp_c = num('brakeTempC');
+      base.abs_fault_indicator = num('absFaultIndicator');
+      base.brake_pedal_pos_percent = num('brakePedalPosPercent');
+      base.wheel_speed_fl_kph = num('wheelSpeedFlKph');
+      base.wheel_speed_fr_kph = num('wheelSpeedFrKph');
+      base.wheel_speed_rl_kph = num('wheelSpeedRlKph');
+      base.wheel_speed_rr_kph = num('wheelSpeedRrKph');
+      base.battery_current_a = num('batteryCurrentA');
+      base.battery_temp_c = num('batteryTempC');
+      base.alternator_output_v = num('alternatorOutputV');
+      base.battery_charge_percent = num('batteryChargePercent');
+      base.battery_health_percent = num('batteryHealthPercent');
+      base.vehicle_speed_kph = num('vehicleSpeedKph');
+      base.ambient_temp_c = num('ambientTempC');
+      base.humidity_percent = num('humidityPercent');
+      return base;
+    }
+
+    let currentVehicle = null; // { license_plate, make, model, year, trim_or_engine } when a registered vehicle is selected
+
+    async function loadLicensePlateList() {
+      try {
+        const sel = byId('licensePlateSelect');
+        if (!currentDriverId) {
+          sel.innerHTML = '<option value="">' + t('loginFirst') + '</option>';
+          return;
+        }
+        const aRes = await fetch(API + '/api/drivers/' + encodeURIComponent(currentDriverId) + '/vehicles');
+        const aData = await aRes.json().catch(() => ({ license_plates: [] }));
+        const allowed = new Set((aData.license_plates || []).map(x => String(x).toUpperCase()));
+        const res = await fetch(API + '/api/vehicles');
+        let list = await res.json().catch(() => []);
+        if (allowed) list = list.filter(v => allowed.has(String(v.license_plate || '').toUpperCase()));
+        sel.innerHTML = '';
+        const option = (val, label) => {
+          const o = document.createElement('option');
+          o.value = val;
+          o.textContent = label;
+          return o;
+        };
+        sel.appendChild(option('', t('selectVehicle')));
+        (list || []).forEach(v => {
+          const label = (v.license_plate || '') + ' — ' + [v.make, v.model, v.year].filter(Boolean).join(' ');
+          sel.appendChild(option(String(v.license_plate || ''), label));
+        });
+      } catch (e) {
+        byId('licensePlateSelect').innerHTML = '<option value="">' + t('failedToLoad') + '</option>';
+      }
+    }
+
+    function parseIntervalMiles(text) {
+      if (!text) return null;
+      const m = String(text).toLowerCase().match(/([\d.]+)\s*(km|mile|miles)?/);
+      if (!m) return null;
+      const value = parseFloat(m[1]);
+      const unit = m[2] || 'km';
+      if (!isFinite(value)) return null;
+      return unit.startsWith('mile') ? value * 1.60934 : value;
+    }
+
+    function parseIntervalDays(text) {
+      if (!text) return null;
+      const m = String(text).toLowerCase().match(/([\d.]+)\s*(day|days|week|weeks|month|months|year|years|hour|hours)/);
+      if (!m) return null;
+      const value = parseFloat(m[1]);
+      const unit = m[2];
+      if (!isFinite(value)) return null;
+      if (unit.startsWith('day')) return value;
+      if (unit.startsWith('week')) return value * 7;
+      if (unit.startsWith('month')) return value * 30.4375;
+      if (unit.startsWith('year')) return value * 365.25;
+      if (unit.startsWith('hour')) return value / 24;
+      return null;
+    }
+
+    function monthsBetween(dateStr, nowDate) {
+      if (!dateStr) return null;
+      const d = new Date(dateStr + 'T00:00:00');
+      if (isNaN(d.getTime())) return null;
+      const now = nowDate || new Date();
+      const ms = now.getTime() - d.getTime();
+      if (!isFinite(ms) || ms < 0) return 0;
+      return ms / (1000 * 60 * 60 * 24 * 30.4375);
+    }
+
+    function fillIfEmpty(inputId, value, decimals) {
+      if (value == null || !isFinite(value)) return;
+      const el = byId(inputId);
+      if (!el) return;
+      if ((el.value || '').trim() !== '') return;
+      const n = (typeof decimals === 'number') ? Number(value).toFixed(decimals) : String(Math.round(value));
+      el.value = n;
+    }
+
+    function autofillOperationalInputsFromCard(cardData) {
+      const items = cardData?.items || [];
+      const byPart = {};
+      items.forEach(i => { if (i && i.part_id) byPart[i.part_id] = i; });
+      const currentKm = (cardData?.current_mileage_km != null) ? Number(cardData.current_mileage_km) : null;
+
+      const oil = byPart.engine_oil || byPart.oil_filter;
+      if (oil) {
+        const mOil = monthsBetween(oil.last_serviced_date, new Date());
+        const kmOil = (currentKm != null && oil.last_serviced_mileage != null) ? (currentKm - Number(oil.last_serviced_mileage)) : null;
+        fillIfEmpty('monthsSinceOil', mOil, 1);
+        fillIfEmpty('mileageSinceOil', kmOil, 0);
+      }
+
+      const brake = byPart.brake_inspection;
+      if (brake && currentKm != null && brake.last_serviced_mileage != null) {
+        fillIfEmpty('mileageSinceBrake', currentKm - Number(brake.last_serviced_mileage), 0);
+      }
+
+      const tire = byPart.tire_rotation;
+      if (tire && currentKm != null && tire.last_serviced_mileage != null) {
+        fillIfEmpty('mileageSinceTire', currentKm - Number(tire.last_serviced_mileage), 0);
+      }
+
+      const battery = byPart.battery;
+      if (battery) {
+        const mBat = monthsBetween(battery.last_serviced_date, new Date());
+        fillIfEmpty('batteryAgeMonths', mBat, 0);
+      }
+    }
+
+    function partHealthClass(item, currentMileageKm) {
+      const recMiles = parseIntervalMiles(item.recommended_service_interval_mileage);
+      const recDays = parseIntervalDays(item.recommended_service_interval_time);
+      const lastMiles = (item.last_serviced_mileage != null) ? Number(item.last_serviced_mileage) : null;
+      const nowMiles = (currentMileageKm != null) ? Number(currentMileageKm) : null;
+      const usedMiles = (recMiles != null && lastMiles != null && nowMiles != null && isFinite(lastMiles) && isFinite(nowMiles)) ? (nowMiles - lastMiles) : null;
+      const mileageRatio = (usedMiles != null && recMiles > 0) ? (usedMiles / recMiles) : null;
+
+      let timeRatio = null;
+      if (recDays != null && item.last_serviced_date) {
+        const d = new Date(item.last_serviced_date + 'T00:00:00');
+        if (!isNaN(d.getTime())) {
+          const days = (Date.now() - d.getTime()) / (1000 * 60 * 60 * 24);
+          timeRatio = recDays > 0 ? (days / recDays) : null;
+        }
+      }
+
+      const hasMileage = mileageRatio != null;
+      const hasTime = timeRatio != null;
+      let red = false;
+      if (hasMileage && hasTime) red = mileageRatio >= 1 || timeRatio >= 1;
+      else if (hasMileage) red = mileageRatio >= 1;
+      else if (hasTime) red = timeRatio >= 1;
+      if (red) return 'part-red';
+
+      const yellow = (hasMileage && mileageRatio >= 0.8) || (hasTime && timeRatio >= 0.8);
+      if (yellow) return 'part-yellow';
+      return 'part-green';
+    }
+
+    function renderMaintenanceCardTable(items, currentMileageKm) {
+      const tbody = byId('maintenanceCardTableBody');
+      tbody.innerHTML = '';
+      (items || []).forEach(item => {
+        const tr = document.createElement('tr');
+        tr.className = partHealthClass(item, currentMileageKm);
+        const label = item.part_label || item.part_id || '';
+        tr.innerHTML =
+          '<td style="padding:0.35rem; border:1px solid var(--border);">' + escapeHtml(label) + '</td>' +
+          '<td style="padding:0.35rem; border:1px solid var(--border);"><input type="checkbox" data-part-id="' + escapeHtml(item.part_id) + '" data-field="routine_maintenance" ' + (item.routine_maintenance ? 'checked' : '') + ' /></td>' +
+          '<td style="padding:0.35rem; border:1px solid var(--border);"><input type="checkbox" data-part-id="' + escapeHtml(item.part_id) + '" data-field="failure_maintenance" ' + (item.failure_maintenance ? 'checked' : '') + ' /></td>' +
+          '<td style="padding:0.35rem; border:1px solid var(--border);">' + escapeHtml(item.last_serviced_date || '—') + '</td>' +
+          '<td style="padding:0.35rem; border:1px solid var(--border);">' + escapeHtml(item.last_serviced_mileage != null ? String(item.last_serviced_mileage) : '—') + '</td>' +
+          '<td style="padding:0.35rem; border:1px solid var(--border);">' + escapeHtml(item.recommended_service_interval_time || '—') + '</td>' +
+          '<td style="padding:0.35rem; border:1px solid var(--border);">' + escapeHtml(item.recommended_service_interval_mileage || '—') + '</td>';
+        tbody.appendChild(tr);
+      });
+    }
+    function escapeHtml(s) {
+      if (s == null) return '';
+      const div = document.createElement('div');
+      div.textContent = s;
+      return div.innerHTML;
+    }
+    function getMaintenanceCardDataFromTable() {
+      const items = [];
+      byId('maintenanceCardTableBody').querySelectorAll('tr').forEach(tr => {
+        const partId = tr.querySelector('[data-part-id]')?.getAttribute('data-part-id');
+        if (!partId) return;
+        items.push({
+          part_id: partId,
+          routine_maintenance: !!tr.querySelector('[data-field="routine_maintenance"]')?.checked,
+          failure_maintenance: !!tr.querySelector('[data-field="failure_maintenance"]')?.checked
+        });
+      });
+      return items;
+    }
+
+    async function onLicensePlateChange() {
+      const val = byId('licensePlateSelect').value;
+      if (val === '__add__') {
+        currentVehicle = null;
+        byId('addVehicleForm').style.display = 'block';
+        byId('selectedVehicleLabel').style.display = 'none';
+        byId('maintenanceCardSection').style.display = 'none';
+        byId('vehicleSelect').disabled = true;
+        byId('vehicleSelectHint').style.display = 'none';
+        return;
+      }
+      byId('addVehicleForm').style.display = 'none';
+      if (!val) {
+        currentVehicle = null;
+        byId('selectedVehicleLabel').style.display = 'none';
+        byId('maintenanceCardSection').style.display = 'none';
+        byId('vehicleSelect').disabled = true;
+        byId('vehicleSelectHint').style.display = 'none';
+        updateOperationalInputsVisibility();
+        return;
+      }
+      try {
+        const res = await fetch(API + '/api/vehicles/' + encodeURIComponent(val));
+        if (!res.ok) { currentVehicle = null; return; }
+        const v = await res.json();
+        currentVehicle = { license_plate: v.license_plate, make: v.make, model: v.model, year: v.year, trim_or_engine: v.trim_or_engine || null };
+        byId('selectedVehicleLabel').textContent = t('vehicleLabel') + ': ' + [v.make, v.model, v.year].filter(Boolean).join(' ') + (v.trim_or_engine ? ' (' + v.trim_or_engine + ')' : '');
+        byId('selectedVehicleLabel').style.display = 'block';
+        setVehicleFromStored(currentVehicle);
+        await refreshMaintenanceCardPanels(val);
+        byId('maintenanceCardSection').style.display = 'block';
+        await loadVehicleList();
+        const sel = byId('vehicleSelect');
+        let matched = false;
+        sel.selectedIndex = 0;
+        for (let i = 0; i < sel.options.length; i++) {
+          const o = sel.options[i];
+          if (!o.value || o.value === '__other__') continue;
+          try {
+            const r = JSON.parse(o.value);
+            if (
+              normalizeText(r.make) === normalizeText(currentVehicle.make) &&
+              normalizeText(r.model) === normalizeText(currentVehicle.model) &&
+              Number(r.year) === Number(currentVehicle.year) &&
+              normalizeText(r.trim_or_engine) === normalizeText(currentVehicle.trim_or_engine)
+            ) {
+              sel.selectedIndex = i;
+              matched = true;
+              break;
+            }
+          } catch (_) {}
+        }
+        sel.disabled = true;
+        byId('vehicleSelectHint').style.display = 'block';
+        if (!matched) byId('vehicleSelectHint').textContent = t('noRulesFound');
+        else byId('vehicleSelectHint').textContent = t('rulesAutoHint');
+      } catch (_) {
+        currentVehicle = null;
+      }
+      if (!currentVehicle) {
+        byId('vehicleSelect').disabled = true;
+        byId('vehicleSelectHint').style.display = 'none';
+      }
+      updateOperationalInputsVisibility();
+    }
+
+    async function loadVehicleList() {
+      try {
+        const res = await fetch(API + '/api/vehicles/rules');
+        const list = await res.json().catch(() => []);
+        const sel = byId('vehicleSelect');
+        sel.innerHTML = '';
+        const option = (val, label) => {
+          const o = document.createElement('option');
+          o.value = val;
+          o.textContent = label;
+          return o;
+        };
+        sel.appendChild(option('', t('selectVehicle')));
+        list.forEach(v => {
+          const label = [v.make, v.model, v.year].filter(Boolean).join(' ') + (v.trim_or_engine ? ' (' + v.trim_or_engine + ')' : '');
+          sel.appendChild(option(JSON.stringify(v), label));
+        });
+        sel.appendChild(option('__other__', 'Other (add new vehicle)'));
+        updateOperationalInputsVisibility();
+      } catch (e) {
+        byId('vehicleSelect').innerHTML = '<option value="">' + t('failedToLoad') + '</option>';
+      }
+    }
+
+    const COMPONENTS = ['engine_oil','oil_filter','tire_rotation','brake_inspection','battery','coolant','transmission_fluid','air_filter','fuel_filter','belt_inspection','hose_inspection','daily_check','weekly_check'];
+    const ACTIONS = ['replace','inspect','check','service'];
+    const DISTANCE_UNITS = ['km','miles'];
+    const TIME_UNITS = ['months','weeks','hours','days','years'];
+
+    let rulesModalPayload = null;
+    let lastUserLocation = null;
+    let currentCardProducedAt = null;
+
+    function fmtDateTime(iso) {
+      if (!iso) return '—';
+      try { return new Date(iso).toLocaleString(); } catch (_) { return iso; }
+    }
+
+    function renderMaintenanceHistoryTable(data) {
+      const wrap = byId('maintenanceHistoryTableWrap');
+      const cols = data.columns || [];
+      const rows = data.rows || [];
+      let html = '<table style="width:100%; border-collapse:collapse; font-size:0.82rem;"><thead><tr style="background:var(--border);"><th style="text-align:left; padding:0.35rem; border:1px solid var(--border);">Part</th><th style="text-align:left; padding:0.35rem; border:1px solid var(--border);">Recommended service interval: time</th><th style="text-align:left; padding:0.35rem; border:1px solid var(--border);">Recommended service interval: mileage</th>';
+      cols.forEach(c => { html += '<th style="text-align:left; padding:0.35rem; border:1px solid var(--border);">' + escapeHtml(c.column_label) + '</th>'; });
+      html += '</tr></thead><tbody>';
+      rows.forEach(r => {
+        html += '<tr><td style="padding:0.35rem; border:1px solid var(--border);">' + escapeHtml(r.part_label) + '</td><td style="padding:0.35rem; border:1px solid var(--border);">' + escapeHtml(r.recommended_service_interval_time || '—') + '</td><td style="padding:0.35rem; border:1px solid var(--border);">' + escapeHtml(r.recommended_service_interval_mileage || '—') + '</td>';
+        cols.forEach(c => { html += '<td style="padding:0.35rem; border:1px solid var(--border);">' + escapeHtml((r.values || {})[c.card_id] || 'none') + '</td>'; });
+        html += '</tr>';
+      });
+      html += '</tbody></table>';
+      wrap.innerHTML = html;
+    }
+
+    async function refreshMaintenanceCardPanels(licensePlate) {
+      if (!licensePlate) return;
+      try {
+        const cardRes = await fetch(API + '/api/vehicles/' + encodeURIComponent(licensePlate) + '/maintenance-card');
+        const cardData = await cardRes.json().catch(() => ({ items: [] }));
+        currentCardProducedAt = cardData.produced_at || null;
+        byId('maintenanceCurrentMileage').textContent = t('currentMileageLabel') + ': ' + (cardData.current_mileage_km != null ? cardData.current_mileage_km + ' km' : '—');
+        renderMaintenanceCardTable(cardData.items, cardData.current_mileage_km);
+        autofillOperationalInputsFromCard(cardData);
+      } catch (_) {}
+      try {
+        const histRes = await fetch(API + '/api/vehicles/' + encodeURIComponent(licensePlate) + '/maintenance-history-table');
+        const histData = await histRes.json().catch(() => ({ columns: [], rows: [] }));
+        renderMaintenanceHistoryTable(histData);
+      } catch (_) {}
+    }
+
+    function emptyRuleItem() {
+      return {
+        component: 'engine_oil',
+        action: 'check',
+        interval_distance_value: null,
+        interval_distance_unit: null,
+        interval_time_value: null,
+        interval_time_unit: null,
+        conditions: 'normal service',
+        found: true,
+        source_page: null,
+        source_quote: null,
+        source_url: null,
+        confidence: null
+      };
+    }
+
+    function renderRuleItem(item, index, section, onRemove) {
+      const card = document.createElement('div');
+      card.className = 'rule-item-card';
+      card.dataset.section = section;
+      card.dataset.index = index;
+      const num = (v) => (v === '' || v === null || v === undefined) ? '' : String(v);
+      card.innerHTML =
+        '<div class="rule-item-header"><strong>Item ' + (index + 1) + '</strong>' +
+        (onRemove ? '<button type="button" class="btn-remove">Remove</button>' : '') + '</div>' +
+        '<div class="row"><label>Component</label></div>' +
+        '<select class="rule-component"><option value="">—</option>' + COMPONENTS.map(c => '<option value="' + c + '"' + (item.component === c ? ' selected' : '') + '>' + c + '</option>').join('') + '</select>' +
+        '<div class="row"><label>Action</label></div>' +
+        '<select class="rule-action">' + ACTIONS.map(a => '<option value="' + a + '"' + (item.action === a ? ' selected' : '') + '>' + a + '</option>').join('') + '</select>' +
+        '<div class="row"><label>Interval distance (value)</label><label>Unit</label></div>' +
+        '<div class="row"><input type="number" class="rule-dist-value" placeholder="e.g. 10000" value="' + num(item.interval_distance_value) + '" step="100" /><select class="rule-dist-unit"><option value="">—</option>' + DISTANCE_UNITS.map(u => '<option value="' + u + '"' + (item.interval_distance_unit === u ? ' selected' : '') + '>' + u + '</option>').join('') + '</select></div>' +
+        '<div class="row"><label>Interval time (value)</label><label>Unit</label></div>' +
+        '<div class="row"><input type="number" class="rule-time-value" placeholder="e.g. 12" value="' + num(item.interval_time_value) + '" step="0.5" /><select class="rule-time-unit"><option value="">—</option>' + TIME_UNITS.map(u => '<option value="' + u + '"' + (item.interval_time_unit === u ? ' selected' : '') + '>' + u + '</option>').join('') + '</select></div>' +
+        '<div class="row"><label>Conditions</label></div>' +
+        '<input type="text" class="rule-conditions" placeholder="e.g. normal service" value="' + (item.conditions || '') + '" />' +
+        '<div class="row"><label>Source quote</label></div>' +
+        '<textarea class="rule-source-quote" placeholder="Exact quote from manual (optional)">' + (item.source_quote || '') + '</textarea>' +
+        '<div class="row"><label>Source URL (where this rule came from)</label></div>' +
+        '<input type="url" class="rule-source-url" placeholder="https://..." value="' + (item.source_url || '') + '" />';
+      if (onRemove) {
+        card.querySelector('.btn-remove').onclick = () => {
+          card.remove();
+        };
+      }
+      return card;
+    }
+
+    function collectRuleItems(container, section) {
+      const cards = container.querySelectorAll('.rule-item-card[data-section="' + section + '"]');
+      const items = [];
+      cards.forEach(c => {
+        const numVal = (cls) => { const v = c.querySelector(cls).value.trim(); return v === '' ? null : parseFloat(v); };
+        const strVal = (cls) => (c.querySelector(cls).value || '').trim() || null;
+        items.push({
+          component: (c.querySelector('.rule-component').value || 'engine_oil'),
+          action: (c.querySelector('.rule-action').value || 'check'),
+          interval_distance_value: numVal('.rule-dist-value'),
+          interval_distance_unit: strVal('.rule-dist-unit'),
+          interval_time_value: numVal('.rule-time-value'),
+          interval_time_unit: strVal('.rule-time-unit'),
+          conditions: strVal('.rule-conditions'),
+          found: true,
+          source_page: null,
+          source_quote: strVal('.rule-source-quote'),
+          source_url: strVal('.rule-source-url'),
+          confidence: null
+        });
+      });
+      return items;
+    }
+
+    function openRulesModal(isAddManually, vehicleJson) {
+      const modal = byId('rulesModal');
+      const title = byId('rulesModalTitle');
+      const body = byId('rulesModalBody');
+      const saveBtn = byId('rulesModalSave');
+      const cancelBtn = byId('rulesModalCancel');
+
+      if (isAddManually) {
+        title.textContent = 'Add vehicle manually';
+        rulesModalPayload = {
+          vehicle: { make: '', model: '', year: new Date().getFullYear(), trim_or_engine: null },
+          service_schedule: { normal_service: [], severe_service: [] },
+          source_url: null,
+          source_label: null,
+          source_urls: []
+        };
+      } else {
+        title.textContent = 'Edit rules';
+        rulesModalPayload = vehicleJson;
+      }
+
+      let html = '';
+      if (isAddManually) {
+        html += '<label>Make</label><input type="text" id="modalMake" value="' + (rulesModalPayload.vehicle.make || '') + '" placeholder="e.g. Toyota" />';
+        html += '<label>Model</label><input type="text" id="modalModel" value="' + (rulesModalPayload.vehicle.model || '') + '" placeholder="e.g. RAV4" />';
+        html += '<div class="row"><label>Year</label><label>Trim / engine (optional)</label></div>';
+        html += '<div class="row"><input type="number" id="modalYear" value="' + (rulesModalPayload.vehicle.year || '') + '" min="1990" max="2030" /><input type="text" id="modalTrim" value="' + (rulesModalPayload.vehicle.trim_or_engine || '') + '" placeholder="optional" /></div>';
+        html += '<hr style="margin:1rem 0; border-color:var(--border);" />';
+      }
+      html += '<h3 style="font-size:0.95rem; margin:0 0 0.5rem;">Normal service</h3>';
+      html += '<div id="modalNormalContainer"></div>';
+      html += '<button type="button" class="btn-add-row secondary" id="modalAddNormal">+ Add normal service item</button>';
+      html += '<h3 style="font-size:0.95rem; margin:1rem 0 0.5rem;">Severe service</h3>';
+      html += '<div id="modalSevereContainer"></div>';
+      html += '<button type="button" class="btn-add-row secondary" id="modalAddSevere">+ Add severe service item</button>';
+
+      body.innerHTML = html;
+
+      const normalContainer = byId('modalNormalContainer');
+      const severeContainer = byId('modalSevereContainer');
+      const normals = rulesModalPayload.service_schedule.normal_service.length ? rulesModalPayload.service_schedule.normal_service : [emptyRuleItem()];
+      const severes = rulesModalPayload.service_schedule.severe_service.length ? rulesModalPayload.service_schedule.severe_service : [emptyRuleItem()];
+
+      normals.forEach((item, i) => normalContainer.appendChild(renderRuleItem(item, i, 'normal', true)));
+      severes.forEach((item, i) => severeContainer.appendChild(renderRuleItem(item, i, 'severe', true)));
+
+      byId('modalAddNormal').onclick = () => {
+        const idx = normalContainer.querySelectorAll('.rule-item-card').length;
+        normalContainer.appendChild(renderRuleItem(emptyRuleItem(), idx, 'normal', true));
+      };
+      byId('modalAddSevere').onclick = () => {
+        const idx = severeContainer.querySelectorAll('.rule-item-card').length;
+        severeContainer.appendChild(renderRuleItem(emptyRuleItem(), idx, 'severe', true));
+      };
+
+      saveBtn.onclick = async () => {
+        if (isAddManually) {
+          rulesModalPayload.vehicle = {
+            make: byId('modalMake').value.trim() || '',
+            model: byId('modalModel').value.trim() || '',
+            year: parseInt(byId('modalYear').value, 10) || new Date().getFullYear(),
+            trim_or_engine: (byId('modalTrim').value || '').trim() || null
+          };
+          if (!rulesModalPayload.vehicle.make || !rulesModalPayload.vehicle.model) {
+            alert(t('enterMakeModel'));
+            return;
+          }
+        }
+        rulesModalPayload.service_schedule = {
+          normal_service: collectRuleItems(body, 'normal'),
+          severe_service: collectRuleItems(body, 'severe')
+        };
+        rulesModalPayload.service_schedule.normal_service = rulesModalPayload.service_schedule.normal_service.filter(i => i.interval_distance_value != null || i.interval_time_value != null);
+        rulesModalPayload.service_schedule.severe_service = rulesModalPayload.service_schedule.severe_service.filter(i => i.interval_distance_value != null || i.interval_time_value != null);
+        if (!rulesModalPayload.service_schedule.normal_service.length && !rulesModalPayload.service_schedule.severe_service.length) {
+          alert('Add at least one item with an interval (distance or time).');
+          return;
+        }
+        try {
+          const res = await fetch(API + '/api/rules/save', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(rulesModalPayload)
+          });
+          const data = await res.json().catch(() => ({}));
+          if (!res.ok) {
+            alert(data.detail || res.statusText);
+            return;
+          }
+          byId('rulesModal').classList.remove('open');
+          await loadVehicleList();
+          if (data.vehicle) {
+            const sel = byId('vehicleSelect');
+            for (let i = 0; i < sel.options.length; i++) {
+              const o = sel.options[i];
+              if (!o.value || o.value === '__other__') continue;
+              try {
+                const v = JSON.parse(o.value);
+                if (v.make === data.vehicle.make && v.model === data.vehicle.model && v.year === data.vehicle.year && (v.trim_or_engine || null) === (data.vehicle.trim_or_engine || null)) {
+                  sel.selectedIndex = i;
+                  break;
+                }
+              } catch (_) {}
+            }
+          }
+        } catch (e) {
+          alert('Save failed: ' + e.message);
+        }
+      };
+
+      cancelBtn.onclick = () => byId('rulesModal').classList.remove('open');
+      modal.classList.add('open');
+    }
+
+    function getComponentsWithIntervals(rules) {
+      const components = new Set();
+      const add = (list) => (list || []).forEach(item => {
+        if (!item || !item.found) return;
+        const hasInterval = item.interval_distance_value != null || item.interval_time_value != null;
+        if (hasInterval) components.add(item.component);
+      });
+      add(rules.service_schedule?.normal_service);
+      add(rules.service_schedule?.severe_service);
+      return components;
+    }
+
+    function updateOperationalInputsVisibility() {
+      const val = byId('vehicleSelect').value;
+      const container = byId('operationalInputsContainer');
+      const hint = byId('operationalInputsHint');
+      const useMl = byId('useMl').checked;
+
+      const showAll = () => {
+        container.querySelectorAll('[data-show-when]').forEach(el => {
+          const when = el.getAttribute('data-show-when');
+          el.style.display = (when === 'mlTelemetry' && !useMl) ? 'none' : '';
+        });
+        hint.style.display = 'none';
+      };
+
+      if (!val || val === '__other__') {
+        showAll();
+        return;
+      }
+
+      let v;
+      try { v = JSON.parse(val); } catch (_) { showAll(); return; }
+
+      fetch(API + '/api/rules?make=' + encodeURIComponent(v.make) + '&model=' + encodeURIComponent(v.model) + '&year=' + v.year + (v.trim_or_engine ? '&trim_or_engine=' + encodeURIComponent(v.trim_or_engine) : ''))
+        .then(res => res.ok ? res.json() : null)
+        .then(rules => {
+          if (!rules) { showAll(); return; }
+          const comps = getComponentsWithIntervals(rules);
+          const show = (when) => {
+            if (when === 'current_mileage') return true;
+            if (when === 'engine_oil') return comps.has('engine_oil') || comps.has('oil_filter');
+            if (when === 'brake_inspection') return comps.has('brake_inspection');
+            if (when === 'tire_rotation') return comps.has('tire_rotation');
+            if (when === 'battery') return comps.has('battery');
+            if (when === 'mlTelemetry') return useMl;
+            return false;
+          };
+          container.querySelectorAll('[data-show-when]').forEach(el => {
+            el.style.display = show(el.getAttribute('data-show-when')) ? '' : 'none';
+          });
+          hint.style.display = 'block';
+        })
+        .catch(() => showAll());
+    }
+
+    byId('licensePlateSelect').onchange = () => onLicensePlateChange();
+
+    byId('btnAddVehicle').onclick = () => {
+      byId('licensePlateSelect').value = '__add__';
+      onLicensePlateChange();
+    };
+    byId('btnCancelAddVehicle').onclick = () => {
+      byId('addVehicleForm').style.display = 'none';
+      byId('licensePlateSelect').value = '';
+      onLicensePlateChange();
+    };
+    byId('btnSaveCard').onclick = async () => {
+      if (!currentVehicle || !currentVehicle.license_plate) return;
+      const items = getMaintenanceCardDataFromTable();
+      try {
+        const mileageText = (byId('maintenanceCurrentMileage').textContent || '').replace(/[^\d.]/g, '');
+        const mileageKm = mileageText ? parseFloat(mileageText) : null;
+        const res = await fetch(API + '/api/vehicles/' + encodeURIComponent(currentVehicle.license_plate) + '/maintenance-card', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ items, mileage_km: mileageKm })
+        });
+        if (!res.ok) throw new Error((await res.json().catch(() => ({}))).detail || res.statusText);
+        await res.json().catch(() => ({}));
+        await refreshMaintenanceCardPanels(currentVehicle.license_plate);
+        alert(t('maintenanceCardSubmitted'));
+      } catch (e) {
+        alert(t('failedToSave') + ': ' + e.message);
+      }
+    };
+    byId('btnShowEnterCard').onclick = () => {
+      byId('maintenanceEnterView').style.display = 'block';
+      byId('maintenanceHistoryView').style.display = 'none';
+    };
+    byId('btnShowHistory').onclick = () => {
+      byId('maintenanceEnterView').style.display = 'none';
+      byId('maintenanceHistoryView').style.display = 'block';
+    };
+    byId('btnShowSimplified').onclick = () => {
+      if (!currentVehicle || !currentVehicle.license_plate) return;
+      window.open(API + '/simplified?license_plate=' + encodeURIComponent(currentVehicle.license_plate) + '&ui_language=' + encodeURIComponent(currentUiLanguage), '_blank');
+    };
+    byId('btnDownloadTemplate').onclick = () => {
+      if (!currentVehicle || !currentVehicle.license_plate) return;
+      window.location.href = API + '/api/vehicles/' + encodeURIComponent(currentVehicle.license_plate) + '/maintenance-template.pdf?interval_km=500&n_cols=8';
+    };
+    byId('btnUploadCard').onclick = () => {
+      if (!currentVehicle || !currentVehicle.license_plate) return;
+      byId('uploadCardInput').click();
+    };
+    byId('uploadCardInput').onchange = async () => {
+      if (!currentVehicle || !currentVehicle.license_plate) return;
+      const file = byId('uploadCardInput').files[0];
+      if (!file) return;
+      const fd = new FormData();
+      fd.append('image', file);
+      try {
+        const res = await fetch(API + '/api/vehicles/' + encodeURIComponent(currentVehicle.license_plate) + '/maintenance-card-ocr', {
+          method: 'POST',
+          body: fd
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.detail || res.statusText);
+        await refreshMaintenanceCardPanels(currentVehicle.license_plate);
+        const ev = Number(data.saved_events || 0);
+        const mk = Number(data.detected_marks || 0);
+        const cols = Array.isArray(data.active_mileage_columns_km) ? data.active_mileage_columns_km.join(', ') : '';
+        alert(t('maintenanceCardUploaded', { events: ev, marks: mk }) + (cols ? '\\n' + t('mileageColumns') + ': ' + cols : ''));
+      } catch (e) {
+        alert(t('uploadFailed') + ': ' + e.message);
+      } finally {
+        byId('uploadCardInput').value = '';
+      }
+    };
+
+    let currentDriverId = null;
+    const qp = new URLSearchParams(window.location.search);
+    const preselectedDriverId = (qp.get('driver_id') || '').trim();
+    if (preselectedDriverId) currentDriverId = preselectedDriverId;
+
+    async function loadDriversForLogin() {
+      const sel = byId('driverSelect');
+      sel.innerHTML = '<option value="">— Select driver —</option>';
+      try {
+        const res = await fetch(API + '/api/drivers');
+        const data = await res.json().catch(() => ({ drivers: [] }));
+        (data.drivers || []).forEach(d => {
+          const o = document.createElement('option');
+          o.value = d.driver_id;
+          o.textContent = d.name + ' (' + d.driver_id + ')';
+          sel.appendChild(o);
+        });
+        if (preselectedDriverId) {
+          currentDriverId = preselectedDriverId;
+          sel.value = preselectedDriverId;
+          byId('driverLoginLabel').textContent = 'Logged in as driver ID: ' + preselectedDriverId;
+          byId('driverLoginLabel').style.display = 'block';
+          const parent = sel.closest('section');
+          if (parent) parent.style.display = 'none';
+        }
+      } catch (_) {}
+    }
+
+    byId('btnDriverLogin').onclick = async () => {
+      const id = (byId('driverSelect').value || '').trim();
+      if (!id) return;
+      currentDriverId = id;
+      const label = byId('driverSelect').selectedOptions[0]?.textContent || id;
+      byId('driverLoginLabel').textContent = 'Logged in as: ' + label;
+      byId('driverLoginLabel').style.display = 'block';
+      await loadLicensePlateList();
+      byId('licensePlateSelect').value = '';
+      onLicensePlateChange();
+    };
+    byId('btnLogout').onclick = () => {
+      window.location.href = '/';
+    };
+    byId('btnDownloadWalkthrough').onclick = () => {
+      window.location.href = API + '/api/walkthrough.pdf';
+    };
+
+    byId('btnSubmitVehicle').onclick = async () => {
+      const plate = (byId('newLicensePlate').value || '').trim().toUpperCase();
+      const make = (byId('newMake').value || '').trim();
+      const model = (byId('newModel').value || '').trim();
+      const year = parseInt(byId('newYear').value, 10) || new Date().getFullYear();
+      const trim = (byId('newTrim').value || '').trim() || null;
+      if (!plate || !make || !model) {
+        alert(t('enterVehicleFields'));
+        return;
+      }
+      try {
+        const res = await fetch(API + '/api/vehicles', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ license_plate: plate, make, model, year, trim_or_engine: trim })
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          alert(data.detail || res.statusText);
+          return;
+        }
+        byId('addVehicleForm').style.display = 'none';
+        byId('newLicensePlate').value = '';
+        byId('newMake').value = '';
+        byId('newModel').value = '';
+        byId('newYear').value = '';
+        byId('newTrim').value = '';
+        await loadLicensePlateList();
+        byId('licensePlateSelect').value = plate;
+        onLicensePlateChange();
+      } catch (e) {
+        alert(t('genericFailed') + ': ' + e.message);
+      }
+    };
+
+    byId('vehicleSelect').onchange = () => {
+      const val = byId('vehicleSelect').value;
+      const otherDiv = byId('otherVehicle');
+      if (val === '__other__') {
+        otherDiv.style.display = 'block';
+        byId('make').value = '';
+        byId('model').value = '';
+        byId('year').value = '2023';
+        byId('trim').value = '';
+        byId('manualUrl').value = '';
+        byId('extractError').textContent = '';
+        byId('extractResult').style.display = 'none';
+      } else {
+        otherDiv.style.display = 'none';
+        if (val) {
+          try {
+            const v = JSON.parse(val);
+            setVehicleFromStored(v);
+          } catch (_) {}
+        }
+      }
+      updateOperationalInputsVisibility();
+    };
+
+    byId('useMl').onchange = () => updateOperationalInputsVisibility();
+
+    function setInput(id, value) {
+      const el = document.getElementById(id);
+      if (el) el.value = value === undefined || value === null ? '' : value;
+    }
+
+    function loadOperationalDefaults() {
+      setInput('currentMileage', 52300);
+      setInput('monthsSinceOil', 7);
+      setInput('mileageSinceOil', 9300);
+      setInput('mileageSinceBrake', 16300);
+      setInput('mileageSinceTire', 6800);
+      setInput('batteryAgeMonths', 24);
+      setInput('engineRpm', 2100);
+      setInput('engineTemp', 98);
+      setInput('oilPressure', 22);
+      setInput('batteryVoltage', 12.2);
+      setInput('tirePressure', 30);
+      setInput('fuelConsumptionLph', 5);
+      setInput('coolantTempC', 90);
+      setInput('fuelLevelPercent', 50);
+      setInput('engineLoadPercent', 30);
+      setInput('throttlePosPercent', 20);
+      setInput('airFlowRateGps', 40);
+      setInput('exhaustGasTempC', 450);
+      setInput('vibrationLevel', 1.5);
+      setInput('engineHours', 500);
+      setInput('brakeFluidLevelPsi', 1000);
+      setInput('brakePadWearMm', 8);
+      setInput('brakeTempC', 100);
+      setInput('absFaultIndicator', 0);
+      setInput('brakePedalPosPercent', 0);
+      setInput('wheelSpeedFlKph', 50);
+      setInput('wheelSpeedFrKph', 50);
+      setInput('wheelSpeedRlKph', 50);
+      setInput('wheelSpeedRrKph', 50);
+      setInput('batteryCurrentA', 0);
+      setInput('batteryTempC', 25);
+      setInput('alternatorOutputV', 14);
+      setInput('batteryChargePercent', 80);
+      setInput('batteryHealthPercent', 90);
+      setInput('vehicleSpeedKph', 60);
+      setInput('ambientTempC', 20);
+      setInput('humidityPercent', 50);
+    }
+
+    byId('btnLoadDefaults').onclick = () => loadOperationalDefaults();
+
+    function loadFailureScenario() {
+      loadOperationalDefaults();
+      setInput('currentMileage', 52300);
+      setInput('engineRpm', 2360);
+      setInput('engineTemp', 108);
+      setInput('oilPressure', 8);
+      setInput('coolantTempC', 94);
+      setInput('vibrationLevel', 4.5);
+      setInput('brakeFluidLevelPsi', 430);
+      setInput('brakePadWearMm', 7.2);
+      setInput('brakeTempC', 208);
+      setInput('batteryVoltage', 10);
+      setInput('batteryChargePercent', 55);
+      setInput('batteryHealthPercent', 90);
+    }
+
+    byId('btnLoadFailureScenario').onclick = () => loadFailureScenario();
+
+    byId('btnFindAndExtract').onclick = async () => {
+      const url = byId('manualUrl').value.trim();
+      byId('extractError').textContent = '';
+      byId('extractResult').style.display = 'none';
+      const v = vehicle();
+      if (!v.make || !v.model) {
+        byId('extractError').textContent = t('enterMakeModel');
+        return;
+      }
+      byId('btnFindAndExtract').disabled = true;
+      byId('findExtractLoading').style.display = 'inline-flex';
+      try {
+        const res = await fetch(API + '/api/manuals/find-and-extract', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            vehicle: { ...v, trim_or_engine: v.trim_or_engine || null },
+            manual_url: url || null
+          })
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          byId('extractError').textContent = data.detail || res.statusText;
+          return;
+        }
+        byId('extractResult').style.display = 'block';
+        byId('extractResult').innerHTML = 'Saved. Normal service items: ' + (data.normal_service_count ?? 0) + ', severe: ' + (data.severe_service_count ?? 0) + (data.verifier_warnings?.length ? '\nWarnings: ' + data.verifier_warnings.join('; ') : '');
+        await loadVehicleList();
+        const vNew = data.vehicle;
+        const sel = byId('vehicleSelect');
+        for (let i = 0; i < sel.options.length; i++) {
+          const opt = sel.options[i];
+          if (!opt.value || opt.value === '__other__') continue;
+          try {
+            const o = JSON.parse(opt.value);
+            if (o.make === vNew.make && o.model === vNew.model && o.year === vNew.year && (o.trim_or_engine || null) === (vNew.trim_or_engine || null)) {
+              sel.selectedIndex = i;
+              setVehicleFromStored(vNew);
+              byId('otherVehicle').style.display = 'none';
+              break;
+            }
+          } catch (_) {}
+        }
+      } finally {
+        byId('btnFindAndExtract').disabled = false;
+        byId('findExtractLoading').style.display = 'none';
+      }
+    };
+
+    async function getUserLocation() {
+      if (!('geolocation' in navigator)) return null;
+      return await new Promise((resolve) => {
+        navigator.geolocation.getCurrentPosition(
+          (pos) => {
+            resolve({
+              latitude: pos.coords.latitude,
+              longitude: pos.coords.longitude,
+              accuracy_m: typeof pos.coords.accuracy === 'number' ? pos.coords.accuracy : null
+            });
+          },
+          () => resolve(null),
+          { enableHighAccuracy: false, timeout: 7000 }
+        );
+      });
+    }
+
+    byId('btnRecommend').onclick = async () => {
+      byId('recommendError').textContent = '';
+      byId('recommendResult').style.display = 'none';
+      let v;
+      if (currentVehicle) {
+        v = currentVehicle;
+      } else {
+        const val = byId('vehicleSelect').value;
+        if (val === '__other__' || !val) {
+          byId('recommendError').textContent = t('selectVehicleError');
+          return;
+        }
+        try {
+          v = JSON.parse(val);
+        } catch (_) {
+          v = vehicle();
+        }
+      }
+      const userLocation = await getUserLocation().catch(() => null);
+      lastUserLocation = userLocation;
+      byId('btnRecommend').disabled = true;
+      try {
+        const payload = {
+          vehicle: { make: v.make, model: v.model, year: v.year, trim_or_engine: v.trim_or_engine || null },
+          inputs: inputs(),
+          use_ml: byId('useMl').checked,
+          use_severe_service: byId('useSevereService').checked,
+          ui_language: currentUiLanguage,
+          user_location: userLocation
+        };
+        if (currentVehicle && currentVehicle.license_plate) payload.license_plate = currentVehicle.license_plate;
+        const res = await fetch(API + '/api/recommend', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          byId('recommendError').textContent = t('recommendationFailed');
+          return;
+        }
+        const d = data.decision;
+        let html = '<span class="priority-' + d.overall_priority + '">' + d.overall_priority.toUpperCase() + '</span> ' + d.summary + '\n\n';
+        html += data.explanation + '\n\n';
+        if (d.ml_output && d.ml_output.enabled) {
+          const m = d.ml_output;
+          html += t('telemetryTitle') + '\n';
+          html += '<div class="result-line">Overall risk: ' + (m.overall_risk_score != null ? (m.overall_risk_score * 100).toFixed(1) + '%' : '—') + ', failure probability: ' + (m.failure_probability != null ? (m.failure_probability * 100).toFixed(1) + '%' : '—') + '</div>';
+          if (m.component_risks && Object.keys(m.component_risks).length > 0) {
+            Object.entries(m.component_risks).forEach(function(entry) {
+              if (entry[0] !== 'overall') html += '<div class="result-line">' + entry[0] + ': ' + (entry[1] != null ? (entry[1] * 100).toFixed(1) + '%' : '—') + '</div>';
+            });
+          }
+          html += '\n';
+        }
+        html += t('perComponent') + '\n';
+        (d.components || []).forEach(c => {
+          html += '<div class="result-line"><span class="status-dot status-dot--' + c.priority + '" aria-hidden="true"></span>' + c.component + ': – ' + c.reason + '</div>';
+        });
+        const hasRed = (d.components || []).some(c => c.priority === 'red');
+        if (hasRed && lastUserLocation && lastUserLocation.latitude != null && lastUserLocation.longitude != null) {
+          const lat = lastUserLocation.latitude;
+          const lon = lastUserLocation.longitude;
+          const zoom = 13;
+          const mapsLink = (query) =>
+            'https://www.google.com/maps/search/' +
+            encodeURIComponent(query) +
+            '/@' + lat + ',' + lon + ',' + zoom + 'z';
+          const nearby = data.nearby_mechanics || [];
+          const nearest = (kind) => nearby.find(m => m.kind === kind);
+          const affiliates = nearby
+            .filter(m => m.kind === 'affiliate')
+            .filter((m, i, arr) => arr.findIndex(x => (x.name || '').trim().toLowerCase() === (m.name || '').trim().toLowerCase()) === i)
+            .slice(0, 3);
+
+          html += '\n<div style="margin-top:.7rem;"><strong>' + t('nearbyMechanics') + '</strong></div>';
+
+          if (affiliates.length) {
+            html += '<div class="result-line" style="margin-top:.35rem;"><strong>' + t('affiliatedCenters') + '</strong></div>';
+            affiliates.forEach(a => {
+              html += '<div class="result-line">- <a href="' + a.maps_url + '" target="_blank" rel="noopener noreferrer">' + a.name + '</a></div>';
+            });
+          }
+
+          // General auto repair
+          html += '<div class="result-line" style="margin-top:.45rem;"><strong>' + t('generalRepair') + '</strong></div>';
+          html += '<div class="result-line">- <a href="' + mapsLink('auto repair') + '" target="_blank" rel="noopener noreferrer">' + t('generalRepairSearch') + '</a></div>';
+          const gen = nearest('general');
+          if (gen) {
+            html += '<div class="result-line">- ' + t('closest') + ': <a href="' + gen.maps_url + '" target="_blank" rel="noopener noreferrer">' + gen.name + '</a></div>';
+          }
+
+          // Authorized dealer / make-specific
+          const makeLabel = (v.make || '').trim();
+          if (makeLabel) {
+            html += '<div class="result-line" style="margin-top:.45rem;"><strong>' + t('authorizedService', { make: makeLabel }) + '</strong></div>';
+            html += '<div class="result-line">- <a href="' + mapsLink(makeLabel + ' service center') + '" target="_blank" rel="noopener noreferrer">' + t('authorizedServiceSearch', { make: makeLabel }) + '</a></div>';
+            const dealer = nearest('dealer');
+            if (dealer) {
+              html += '<div class="result-line">- ' + t('closest') + ': <a href="' + dealer.maps_url + '" target="_blank" rel="noopener noreferrer">' + dealer.name + '</a></div>';
+            }
+          }
+
+          // Brake & tire shops
+          html += '<div class="result-line" style="margin-top:.45rem;"><strong>' + t('brakeTire') + '</strong></div>';
+          html += '<div class="result-line">- <a href="' + mapsLink('brake tire shop') + '" target="_blank" rel="noopener noreferrer">' + t('brakeTireSearch') + '</a></div>';
+          const brake = nearest('brake_tire');
+          if (brake) {
+            html += '<div class="result-line">- ' + t('closest') + ': <a href="' + brake.maps_url + '" target="_blank" rel="noopener noreferrer">' + brake.name + '</a></div>';
+          }
+        }
+        if (d.rule_engine_only) html += '\n' + t('rulesOnly');
+        byId('recommendResult').innerHTML = html;
+        byId('recommendResult').style.display = 'block';
+        if (currentVehicle && currentVehicle.license_plate) onLicensePlateChange();
+      } finally {
+        byId('btnRecommend').disabled = false;
+      }
+    };
+
+    const storedLang = localStorage.getItem(UI_LANG_KEY) || 'en';
+    setUiLanguage(storedLang);
+    document.querySelectorAll('.lang-btn[data-lang]').forEach((btn) => {
+      btn.onclick = () => setUiLanguage(btn.getAttribute('data-lang') || 'en');
+    });
+
+    loadDriversForLogin();
+    loadLicensePlateList();
+    loadVehicleList();
+  </script>
+</body>
+</html>

@@ -1,0 +1,60 @@
+{
+  "license_plate": "T0172",
+  "events": [
+    {
+      "card_id": "T0172-2026-04-07",
+      "produced_at": "2026-04-07T11:43:08.816682+00:00",
+      "mileage_km": 52300,
+      "items": {
+        "engine_oil": "failure",
+        "oil_filter": "routine",
+        "brake_inspection": "routine",
+        "tire_rotation": "none"
+      }
+    },
+    {
+      "card_id": "T0172-2026-04-07-2",
+      "produced_at": "2026-04-07T11:44:59.008432+00:00",
+      "mileage_km": 0.0,
+      "items": {
+        "engine_oil": "none",
+        "oil_filter": "none",
+        "brake_inspection": "routine",
+        "tire_rotation": "none"
+      }
+    },
+    {
+      "card_id": "T0172-2026-04-07-3",
+      "produced_at": "2026-04-07T11:52:14.966181+00:00",
+      "mileage_km": 52300,
+      "items": {
+        "engine_oil": "none",
+        "oil_filter": "none",
+        "brake_inspection": "routine",
+        "tire_rotation": "none"
+      }
+    },
+    {
+      "card_id": "T0172-2026-04-07-4",
+      "produced_at": "2026-04-07T12:02:49.959606+00:00",
+      "mileage_km": 70000,
+      "items": {
+        "oil_filter": "routine",
+        "tire_rotation": "none",
+        "brake_inspection": "routine",
+        "engine_oil": "routine"
+      }
+    },
+    {
+      "card_id": "T0172-2026-04-07-5",
+      "produced_at": "2026-04-07T15:49:48.367847+00:00",
+      "mileage_km": 75000,
+      "items": {
+        "engine_oil": "failure",
+        "tire_rotation": "failure",
+        "oil_filter": "failure",
+        "brake_inspection": "routine"
+      }
+    }
+  ]
+}

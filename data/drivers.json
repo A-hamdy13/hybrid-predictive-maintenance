@@ -1,0 +1,28 @@
+{
+  "drivers": [
+    {
+      "driver_id": "D001",
+      "name": "Alex Driver",
+      "phone": "+1-555-0101"
+    },
+    {
+      "driver_id": "D002",
+      "name": "Samira Driver",
+      "phone": "+1-555-0102"
+    }
+  ],
+  "assignments": {
+    "T0172": [
+      "D001"
+    ],
+    "A123244": [
+      "D001"
+    ],
+    "T15555": [
+      "D002"
+    ],
+    "T11111": [
+      "D001"
+    ]
+  }
+}

@@ -1,0 +1,28 @@
+# API & server
+fastapi==0.115.6
+uvicorn[standard]==0.32.1
+
+# OpenAI (v2 required for Responses API + web_search)
+openai>=2.0,<3
+
+# PDF & web
+pymupdf==1.25.2
+requests==2.32.3
+beautifulsoup4==4.12.3
+unstructured-client>=0.30
+
+# Browser agent (manual finder)
+playwright==1.49.1
+
+# Data & validation
+pydantic==2.10.3
+pydantic-settings==2.6.1
+
+# Env
+python-dotenv==1.0.1
+
+# Optional for ML (toggleable)
+scikit-learn==1.5.2
+pandas==2.2.3
+xgboost>=2.0
+joblib>=1.3

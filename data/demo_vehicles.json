@@ -1,0 +1,42 @@
+[
+  {
+    "make": "Ford",
+    "model": "Transit",
+    "year": 2023,
+    "trim_or_engine": null,
+    "manual_url": "https://www.ford.com/support/owner-information/",
+    "manual_label": "Ford Owner Support (user can download manual by model)"
+  },
+  {
+    "make": "Mercedes-Benz",
+    "model": "Sprinter",
+    "year": 2022,
+    "trim_or_engine": null,
+    "manual_url": "https://www.mbusa.com/mercedes/owners/manuals",
+    "manual_label": "Mercedes-Benz Owner Manuals"
+  },
+  {
+    "make": "Ram",
+    "model": "ProMaster",
+    "year": 2023,
+    "trim_or_engine": null,
+    "manual_url": "https://www.ramtrucks.com/body-builders/2023/promaster.html",
+    "manual_label": "Ram ProMaster Resources"
+  },
+  {
+    "make": "Chevrolet",
+    "model": "Express",
+    "year": 2023,
+    "trim_or_engine": null,
+    "manual_url": "https://my.chevrolet.com/how-to-support/owner-resources/owner-manuals",
+    "manual_label": "Chevrolet Owner Manuals"
+  },
+  {
+    "make": "ExampleTruck",
+    "model": "CargoMax",
+    "year": 2023,
+    "trim_or_engine": "2.0L Diesel",
+    "manual_url": null,
+    "manual_label": "Demo vehicle – use sample rules or paste manual PDF URL"
+  }
+]

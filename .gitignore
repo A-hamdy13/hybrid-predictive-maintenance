@@ -1,0 +1,38 @@
+.env
+.env.*
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+env/
+.idea/
+.vscode/
+*.log
+data/manuals_cache/
+.ipynb_checkpoints/
+
+# Runtime/deployment artifacts
+.DS_Store
+Thumbs.db
+*.pid
+*.sqlite3
+
+# Local model/cache/temp outputs
+data/scraped_manuals/
+data/model.pkl
+data/model_components.pkl
+data/model_features.txt
+data/*.tmp
+data/*.bak
+data/*.swp
+
+# Local tooling / legacy copies
+.tools/
+hybrid predictive maintainance v1/
+real data/
+synthetic_telemetry_data.csv

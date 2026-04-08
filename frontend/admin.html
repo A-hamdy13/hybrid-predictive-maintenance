@@ -1,0 +1,720 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Admin - Predictive Maintenance</title>
+  <style>
+    :root { --bg:#0f0f12; --surface:#18181c; --border:#2a2a30; --text:#e4e4e7; --muted:#71717a; --green:#22c55e; --red:#ef4444; --accent:#3b82f6; }
+    body { margin:0; padding:1rem; font-family:system-ui,-apple-system,sans-serif; background:var(--bg); color:var(--text); }
+    .row { display:flex; gap:.6rem; flex-wrap:wrap; align-items:center; }
+    input, select, button, textarea { padding:.45rem .6rem; background:var(--surface); color:var(--text); border:1px solid var(--border); border-radius:6px; }
+    button { background:var(--accent); border:none; color:white; cursor:pointer; }
+    button.secondary { background:var(--surface); border:1px solid var(--border); color:var(--text); }
+    .topbar { display:flex; justify-content:space-between; align-items:center; gap:.5rem; }
+    .tabs { display:flex; gap:.5rem; margin:.8rem 0; }
+    .tab { padding:.45rem .7rem; border:1px solid var(--border); border-radius:6px; background:var(--surface); cursor:pointer; }
+    .tab.active { border-color:var(--accent); }
+    .grid { display:grid; grid-template-columns: minmax(280px, 32%) 1fr; gap:1rem; }
+    .panel { background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:.7rem; }
+    .vehicle { border:2px solid var(--border); border-radius:8px; padding:.55rem; margin-bottom:.45rem; cursor:pointer; }
+    .vehicle.green { border-color:var(--green); }
+    .vehicle.red { border-color:var(--red); }
+    .muted { color:var(--muted); font-size:.86rem; }
+    table { width:100%; border-collapse:collapse; font-size:.86rem; }
+    th, td { border:1px solid var(--border); padding:.35rem; text-align:left; }
+    .rule-item-card { background:var(--bg); border:1px solid var(--border); border-radius:8px; padding:.55rem; margin-bottom:.55rem; }
+    .rule-item-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:.4rem; }
+    .btn-remove { background:#ef4444; color:white; border:none; border-radius:4px; padding:.2rem .45rem; cursor:pointer; }
+  </style>
+</head>
+<body>
+  <div class="topbar">
+    <h2 style="margin:.2rem 0;">Admin Console</h2>
+    <div class="row">
+      <button id="btnDownloadWalkthrough" class="secondary" type="button" style="width:auto;">Download walkthrough</button>
+      <button id="btnLogout" class="secondary" type="button" style="width:auto;">Logout</button>
+    </div>
+  </div>
+  <div class="tabs">
+    <div id="tabVehicles" class="tab active">Vehicles</div>
+    <div id="tabDrivers" class="tab">Manage drivers</div>
+    <div id="tabRules" class="tab">Rules</div>
+    <div id="tabData" class="tab">Data</div>
+    <div id="tabAffiliates" class="tab">Manage affiliate centers</div>
+  </div>
+
+  <section id="vehiclesPane">
+    <div class="panel" style="margin-bottom:.8rem;">
+      <div class="row">
+        <button id="btnToggleAddVehicle" class="secondary" type="button" style="width:auto;">Add vehicle</button>
+      </div>
+      <div id="addVehicleForm" style="display:none; margin-top:.5rem;">
+        <div class="row">
+          <input id="plate" placeholder="License plate" />
+          <input id="make" placeholder="Make" />
+          <input id="model" placeholder="Model" />
+          <input id="year" placeholder="Year" type="number" style="width:110px;" />
+          <input id="trim" placeholder="Trim/engine" />
+          <button id="btnAddVehicle">Save vehicle</button>
+        </div>
+      </div>
+    </div>
+    <div class="grid">
+      <div class="panel">
+        <div class="muted" style="margin-bottom:.4rem;">Registered vehicles by plate (green=all good, red=has due items)</div>
+        <div id="vehicleList"></div>
+      </div>
+      <div class="panel">
+        <h3 id="vehicleTitle" style="margin:.1rem 0 .5rem;">Select a vehicle</h3>
+        <div id="vehicleDetails" class="muted">No vehicle selected.</div>
+      </div>
+    </div>
+  </section>
+
+  <section id="driversPane" style="display:none;">
+    <div class="panel" style="margin-bottom:.8rem;">
+      <div class="row">
+        <button id="btnToggleManageDrivers" class="secondary" type="button" style="width:auto;">Manage drivers</button>
+      </div>
+      <div id="manageDriversPanel" style="display:none; margin-top:.5rem;">
+        <div class="row">
+          <input id="driverId" placeholder="Driver ID" />
+          <input id="driverName" placeholder="Driver name" />
+          <input id="driverPhone" placeholder="Phone number" />
+          <button id="btnAddDriver">Add driver</button>
+        </div>
+        <div class="row" style="margin-top:.45rem;">
+          <button id="btnShowCsvSchema" class="secondary">Import drivers with CSV (show schema)</button>
+          <input id="csvFile" type="file" accept=".csv" />
+          <button id="btnImportCsv" class="secondary">Import CSV</button>
+        </div>
+        <pre id="csvSchema" class="muted" style="display:none; white-space:pre-wrap;">CSV schema:
+driver_id,name,phone
+D001,Jane Smith,+1-555-0100</pre>
+      </div>
+    </div>
+    <div class="grid">
+      <div class="panel">
+        <h3 style="margin:.1rem 0 .5rem;">Drivers</h3>
+        <div id="driverList"></div>
+      </div>
+      <div class="panel">
+        <h3 style="margin:.1rem 0 .5rem;">Driver details</h3>
+        <div id="driverDetails" class="muted" style="margin-bottom:.6rem;">Click a driver to view assigned vehicles and phone.</div>
+      </div>
+    </div>
+    <div class="panel" style="margin-top:1rem;">
+      <h3 style="margin:.1rem 0 .5rem;">Vehicle assignments</h3>
+      <div class="row">
+        <select id="assignVehicle"></select>
+        <button id="btnLoadAssignments" class="secondary">Load</button>
+      </div>
+      <div id="assignmentBox" style="margin-top:.6rem;"></div>
+    </div>
+  </section>
+
+  <section id="rulesPane" style="display:none;">
+    <div class="panel" style="margin-bottom:.8rem;">
+      <h3 style="margin:.1rem 0 .5rem;">Scrape rules for new vehicle</h3>
+      <div class="row">
+        <input id="ruleMake" placeholder="Make" />
+        <input id="ruleModel" placeholder="Model" />
+        <input id="ruleYear" placeholder="Year" type="number" style="width:110px;" />
+        <input id="ruleTrim" placeholder="Trim/engine (optional)" />
+      </div>
+      <div class="row" style="margin-top:.5rem;">
+        <input id="ruleManualUrl" placeholder="Manual URL (optional, leave blank to auto-find)" style="flex:2;" />
+        <button id="btnScrapeRules" type="button">Find manual & extract rules</button>
+      </div>
+      <div id="rulesScrapeResult" class="muted" style="margin-top:.5rem;"></div>
+    </div>
+
+    <div class="panel">
+      <h3 style="margin:.1rem 0 .5rem;">Edit existing rules</h3>
+      <div class="row">
+        <select id="rulesVehicleSelect"></select>
+        <button id="btnLoadRuleGui" class="secondary" type="button">Load rules</button>
+      </div>
+      <div id="rulesEditorGui" style="margin-top:.6rem; display:none;">
+        <h4 style="margin:.3rem 0;">Normal service</h4>
+        <div id="ruleNormalList"></div>
+        <button id="btnAddRuleNormal" class="secondary" type="button">+ Add normal item</button>
+        <h4 style="margin:.8rem 0 .3rem;">Severe service</h4>
+        <div id="ruleSevereList"></div>
+        <button id="btnAddRuleSevere" class="secondary" type="button">+ Add severe item</button>
+      </div>
+      <div class="row" style="margin-top:.5rem;">
+        <button id="btnSaveRuleGui" type="button">Save rules</button>
+      </div>
+      <div id="rulesEditResult" class="muted" style="margin-top:.5rem;"></div>
+    </div>
+  </section>
+
+  <section id="dataPane" style="display:none;">
+    <div class="panel" style="margin-bottom:.8rem;">
+      <div class="row">
+        <button id="btnDownloadAllMlData" type="button">Download all data</button>
+      </div>
+      <div class="muted" style="margin-top:.4rem;">Downloads telemetry matched to maintenance-card events for all vehicles (CSV).</div>
+    </div>
+    <div class="grid">
+      <div class="panel">
+        <h3 style="margin:.1rem 0 .5rem;">Vehicles</h3>
+        <div id="dataVehicleList"></div>
+      </div>
+      <div class="panel">
+        <h3 id="dataVehicleTitle" style="margin:.1rem 0 .5rem;">Select a vehicle</h3>
+        <div id="dataVehicleActions" class="muted">Choose a vehicle to download data exports.</div>
+      </div>
+    </div>
+  </section>
+
+  <section id="affiliatesPane" style="display:none;">
+    <div class="panel" style="margin-bottom:.8rem;">
+      <h3 style="margin:.1rem 0 .5rem;">Search Google Maps centers (by name/query)</h3>
+      <div class="row">
+        <input id="affiliateQuery" placeholder="e.g. auto repair, brake shop, Toyota service" style="flex:2;" />
+        <button id="btnAffiliateSearch" type="button">Search</button>
+      </div>
+      <div id="affiliateSearchResults" style="margin-top:.6rem;"></div>
+    </div>
+    <div class="panel" style="margin-bottom:.8rem;">
+      <h3 style="margin:.1rem 0 .5rem;">Add affiliate center directly</h3>
+      <div class="row" style="margin-top:.5rem;">
+        <input id="directAffiliateMapsUrl" placeholder="Google Maps link" style="flex:2;" />
+        <button id="btnAddDirectAffiliate" type="button">Add center</button>
+      </div>
+      <div class="muted" style="margin-top:.35rem;">Only Google Maps link is required. Name and address are auto-filled from the link/location.</div>
+    </div>
+    <div class="panel">
+      <h3 style="margin:.1rem 0 .5rem;">Affiliated centers</h3>
+      <div id="affiliateList"></div>
+    </div>
+  </section>
+
+  <script>
+    const API = window.location.origin;
+    const byId = (id) => document.getElementById(id);
+    let vehicles = [];
+    let drivers = [];
+    let rulesEditorPayload = null;
+    const COMPONENTS = ['engine_oil','oil_filter','tire_rotation','brake_inspection','battery','coolant','transmission_fluid','air_filter','fuel_filter','belt_inspection','hose_inspection','daily_check','weekly_check'];
+    const ACTIONS = ['replace','inspect','check','service'];
+    const DISTANCE_UNITS = ['km','miles'];
+    const TIME_UNITS = ['months','weeks','hours','days','years'];
+
+    function esc(s){ const d=document.createElement('div'); d.textContent=s==null?'':String(s); return d.innerHTML; }
+
+
+    async function loadAffiliates() {
+      const box = byId('affiliateList');
+      if (!box) return;
+      box.innerHTML = '';
+      try {
+        const res = await fetch(API + '/api/affiliates');
+        const data = await res.json().catch(() => ({ centers: [] }));
+        (data.centers || []).forEach(c => {
+          const row = document.createElement('div');
+          row.className = 'row';
+          row.style.justifyContent = 'space-between';
+          row.style.padding = '.3rem 0';
+          row.innerHTML = '<div><strong>' + esc(c.name) + '</strong><div class="muted">' + esc(c.address || '') + '</div></div>';
+          const right = document.createElement('div');
+          right.className = 'row';
+          const openBtn = document.createElement('button');
+          openBtn.className = 'secondary';
+          openBtn.textContent = 'Open map';
+          openBtn.onclick = () => window.open(c.maps_url, '_blank');
+          const delBtn = document.createElement('button');
+          delBtn.className = 'secondary';
+          delBtn.textContent = 'Remove';
+          delBtn.onclick = async () => {
+            await fetch(API + '/api/affiliates/' + encodeURIComponent(c.place_id || c.id), { method: 'DELETE' });
+            await loadAffiliates();
+          };
+          right.appendChild(openBtn);
+          right.appendChild(delBtn);
+          row.appendChild(right);
+          box.appendChild(row);
+        });
+      } catch (_) {}
+    }
+
+    async function loadVehicles() {
+      const res = await fetch(API + '/api/vehicles');
+      vehicles = await res.json().catch(() => []);
+      const list = byId('vehicleList');
+      list.innerHTML = '';
+      vehicles.forEach(v => {
+        const div = document.createElement('div');
+        div.className = 'vehicle ' + (v.has_due ? 'red' : 'green');
+        div.innerHTML = '<strong>' + esc(v.license_plate) + '</strong><div class="muted">' + esc([v.make, v.model, v.year].join(' ')) + '</div>';
+        div.onclick = () => selectVehicle(v);
+        list.appendChild(div);
+      });
+      const sel = byId('assignVehicle');
+      sel.innerHTML = '';
+      vehicles.forEach(v => {
+        const o = document.createElement('option');
+        o.value = v.license_plate;
+        o.textContent = v.license_plate + ' — ' + [v.make, v.model, v.year].join(' ');
+        sel.appendChild(o);
+      });
+
+      const dlist = byId('dataVehicleList');
+      if (dlist) {
+        dlist.innerHTML = '';
+        vehicles.forEach(v => {
+          const div = document.createElement('div');
+          div.className = 'vehicle ' + (v.has_due ? 'red' : 'green');
+          div.innerHTML = '<strong>' + esc(v.license_plate) + '</strong><div class="muted">' + esc([v.make, v.model, v.year].join(' ')) + '</div>';
+          div.onclick = () => selectDataVehicle(v);
+          dlist.appendChild(div);
+        });
+      }
+    }
+
+    function selectDataVehicle(v) {
+      byId('dataVehicleTitle').textContent = v.license_plate + ' — ' + [v.make, v.model, v.year].join(' ');
+      byId('dataVehicleActions').innerHTML =
+        '<div class="row">' +
+        '<button id="btnDlHist" type="button">Download Maintenance history</button>' +
+        '<button id="btnDlSimp" type="button" class="secondary">Download simplified Maintenance card</button>' +
+        '</div>';
+      byId('btnDlHist').onclick = () => { window.location.href = API + '/api/vehicles/' + encodeURIComponent(v.license_plate) + '/maintenance-history.csv'; };
+      byId('btnDlSimp').onclick = () => { window.location.href = API + '/api/vehicles/' + encodeURIComponent(v.license_plate) + '/maintenance-simplified.csv?interval_km=500'; };
+    }
+
+    async function selectVehicle(v) {
+      byId('vehicleTitle').textContent = v.license_plate + ' — ' + [v.make, v.model, v.year].join(' ');
+      const dueRes = await fetch(API + '/api/vehicles/' + encodeURIComponent(v.license_plate) + '/due-parts');
+      const due = await dueRes.json().catch(() => ({ due_parts: [] }));
+      const histRes = await fetch(API + '/api/vehicles/' + encodeURIComponent(v.license_plate) + '/maintenance-history-table');
+      const hist = await histRes.json().catch(() => ({ columns: [], rows: [] }));
+      const drvRes = await fetch(API + '/api/vehicles/' + encodeURIComponent(v.license_plate) + '/drivers');
+      const drvData = await drvRes.json().catch(() => ({ driver_ids: [] }));
+      const assignedIds = new Set(drvData.driver_ids || []);
+      const assignedDrivers = drivers.filter(d => assignedIds.has(d.driver_id));
+      let html = '<div class="row" style="margin-bottom:.5rem;"><button id="btnOpenSimplified" class="secondary">Open simplified maintenance card</button><button id="btnDownloadTemplate" class="secondary">Download Maintenance card template</button></div>';
+      html += '<h4 style="margin:.2rem 0;">Assigned drivers</h4>';
+      if (!assignedDrivers.length) html += '<div class="muted">No drivers assigned.</div>';
+      else html += '<ul>' + assignedDrivers.map(d => '<li>' + esc(d.name) + ' <span class="muted">(' + esc(d.driver_id) + (d.phone ? ', ' + esc(d.phone) : '') + ')</span></li>').join('') + '</ul>';
+      html += '<h4 style="margin:.2rem 0;">Due parts</h4>';
+      if (!(due.due_parts || []).length) html += '<div class="muted">No due parts.</div>';
+      else html += '<ul>' + due.due_parts.map(p => '<li>' + esc(p.part_label) + '</li>').join('') + '</ul>';
+      html += '<h4 style="margin:.4rem 0;">Maintenance history</h4><div style="overflow:auto;"><table><thead><tr><th>Part</th><th>Interval time</th><th>Interval mileage</th>';
+      (hist.columns || []).forEach(c => html += '<th>' + esc(c.column_label) + '</th>');
+      html += '</tr></thead><tbody>';
+      (hist.rows || []).forEach(r => {
+        html += '<tr><td>' + esc(r.part_label) + '</td><td>' + esc(r.recommended_service_interval_time || '—') + '</td><td>' + esc(r.recommended_service_interval_mileage || '—') + '</td>';
+        (hist.columns || []).forEach(c => html += '<td>' + esc((r.values || {})[c.card_id] || 'none') + '</td>');
+        html += '</tr>';
+      });
+      html += '</tbody></table></div>';
+      byId('vehicleDetails').innerHTML = html;
+      const btnS = byId('btnOpenSimplified');
+      if (btnS) btnS.onclick = () => window.open('/simplified?license_plate=' + encodeURIComponent(v.license_plate) + '&readonly=1', '_blank');
+      const btnT = byId('btnDownloadTemplate');
+      if (btnT) btnT.onclick = () => { window.location.href = '/api/vehicles/' + encodeURIComponent(v.license_plate) + '/maintenance-template.pdf?interval_km=500&n_cols=8'; };
+    }
+
+    async function loadDrivers() {
+      const res = await fetch(API + '/api/drivers');
+      const data = await res.json().catch(() => ({ drivers: [] }));
+      drivers = data.drivers || [];
+      const box = byId('driverList');
+      box.innerHTML = '';
+      drivers.forEach(d => {
+        const row = document.createElement('div');
+        row.className = 'row';
+        row.style.justifyContent = 'space-between';
+        row.style.padding = '.2rem 0';
+        const left = document.createElement('div');
+        left.style.cursor = 'pointer';
+        left.innerHTML = '<strong>' + esc(d.name) + '</strong> <span class="muted">(' + esc(d.driver_id) + ')</span><div class="muted">' + esc(d.phone || '') + '</div>';
+        left.onclick = () => showDriverDetails(d);
+        const b = document.createElement('button');
+        b.className = 'secondary';
+        b.textContent = 'Remove';
+        b.onclick = async () => { await fetch(API + '/api/drivers/' + encodeURIComponent(d.driver_id), { method:'DELETE' }); await loadDrivers(); await loadAssignments(); };
+        row.appendChild(left);
+        row.appendChild(b);
+        box.appendChild(row);
+      });
+    }
+
+    async function showDriverDetails(driver) {
+      const res = await fetch(API + '/api/drivers/' + encodeURIComponent(driver.driver_id) + '/vehicles');
+      const data = await res.json().catch(() => ({ license_plates: [] }));
+      const list = (data.license_plates || []);
+      byId('driverDetails').innerHTML =
+        '<strong>' + esc(driver.name) + '</strong> (' + esc(driver.driver_id) + ')<br/>' +
+        '<span class="muted">Phone: ' + esc(driver.phone || '—') + '</span><br/>' +
+        '<span class="muted">Assigned vehicles:</span> ' + (list.length ? list.map(esc).join(', ') : 'none');
+    }
+
+    async function loadAssignments() {
+      const plate = byId('assignVehicle').value;
+      if (!plate) return;
+      const res = await fetch(API + '/api/vehicles/' + encodeURIComponent(plate) + '/drivers');
+      const data = await res.json().catch(() => ({ driver_ids: [] }));
+      const assigned = new Set(data.driver_ids || []);
+      const box = byId('assignmentBox');
+      box.innerHTML = '';
+      drivers.forEach(d => {
+        const row = document.createElement('label');
+        row.className = 'row';
+        row.style.padding = '.15rem 0';
+        row.innerHTML = '<input type="checkbox" data-driver-id="' + esc(d.driver_id) + '"' + (assigned.has(d.driver_id) ? ' checked' : '') + ' /> ' + esc(d.name) + ' (' + esc(d.driver_id) + ')';
+        box.appendChild(row);
+      });
+      const save = document.createElement('button');
+      save.textContent = 'Save assignments';
+      save.style.marginTop = '.5rem';
+      save.onclick = async () => {
+        const ids = [...box.querySelectorAll('input[data-driver-id]:checked')].map(i => i.getAttribute('data-driver-id'));
+        await fetch(API + '/api/vehicles/' + encodeURIComponent(plate) + '/drivers', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ driver_ids: ids }) });
+        alert('Assignments saved');
+      };
+      box.appendChild(save);
+    }
+
+    byId('btnToggleAddVehicle').onclick = () => {
+      const el = byId('addVehicleForm');
+      el.style.display = el.style.display === 'none' ? 'block' : 'none';
+    };
+
+    byId('btnAddVehicle').onclick = async () => {
+      const body = {
+        license_plate: byId('plate').value.trim().toUpperCase(),
+        make: byId('make').value.trim(),
+        model: byId('model').value.trim(),
+        year: parseInt(byId('year').value, 10) || new Date().getFullYear(),
+        trim_or_engine: byId('trim').value.trim() || null
+      };
+      const res = await fetch(API + '/api/vehicles', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) });
+      if (!res.ok) { alert('Could not add vehicle'); return; }
+      byId('addVehicleForm').style.display = 'none';
+      await loadVehicles();
+    };
+
+    byId('btnToggleManageDrivers').onclick = () => {
+      const el = byId('manageDriversPanel');
+      el.style.display = el.style.display === 'none' ? 'block' : 'none';
+    };
+
+    byId('btnAddDriver').onclick = async () => {
+      const body = { driver_id: byId('driverId').value.trim(), name: byId('driverName').value.trim(), phone: byId('driverPhone').value.trim() };
+      const res = await fetch(API + '/api/drivers', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) });
+      if (!res.ok) { alert('Could not add driver'); return; }
+      byId('driverId').value=''; byId('driverName').value=''; byId('driverPhone').value='';
+      await loadDrivers();
+      await loadAssignments();
+    };
+    byId('btnLoadAssignments').onclick = loadAssignments;
+    byId('btnShowCsvSchema').onclick = () => { byId('csvSchema').style.display = byId('csvSchema').style.display === 'none' ? 'block' : 'none'; };
+    byId('btnImportCsv').onclick = async () => {
+      const f = byId('csvFile').files[0];
+      if (!f) return;
+      const txt = await f.text();
+      const lines = txt.split(/\r?\n/).filter(Boolean);
+      if (lines.length < 2) return;
+      const rows = lines.slice(1).map(l => {
+        const [driver_id, name, phone] = l.split(',');
+        return { driver_id: (driver_id||'').trim(), name: (name||'').trim(), phone: (phone||'').trim() };
+      }).filter(r => r.driver_id && r.name);
+      const res = await fetch(API + '/api/drivers/import', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ drivers: rows }) });
+      const data = await res.json().catch(() => ({}));
+      alert('Imported. Added: ' + (data.added || 0) + ', skipped: ' + (data.skipped || 0));
+      await loadDrivers();
+      await loadAssignments();
+    };
+
+    byId('tabDrivers').onclick = () => {
+      byId('tabDrivers').classList.add('active');
+      byId('tabVehicles').classList.remove('active');
+      byId('tabRules').classList.remove('active');
+      byId('tabData').classList.remove('active');
+      byId('tabAffiliates').classList.remove('active');
+      byId('vehiclesPane').style.display='none';
+      byId('driversPane').style.display='block';
+      byId('rulesPane').style.display='none';
+      byId('dataPane').style.display='none';
+      byId('affiliatesPane').style.display='none';
+    };
+    byId('tabVehicles').onclick = () => {
+      byId('tabVehicles').classList.add('active');
+      byId('tabDrivers').classList.remove('active');
+      byId('tabRules').classList.remove('active');
+      byId('tabData').classList.remove('active');
+      byId('tabAffiliates').classList.remove('active');
+      byId('vehiclesPane').style.display='block';
+      byId('driversPane').style.display='none';
+      byId('rulesPane').style.display='none';
+      byId('dataPane').style.display='none';
+      byId('affiliatesPane').style.display='none';
+    };
+    byId('tabRules').onclick = () => {
+      byId('tabRules').classList.add('active');
+      byId('tabVehicles').classList.remove('active');
+      byId('tabDrivers').classList.remove('active');
+      byId('tabData').classList.remove('active');
+      byId('tabAffiliates').classList.remove('active');
+      byId('rulesPane').style.display='block';
+      byId('vehiclesPane').style.display='none';
+      byId('driversPane').style.display='none';
+      byId('dataPane').style.display='none';
+      byId('affiliatesPane').style.display='none';
+    };
+    byId('tabData').onclick = () => {
+      byId('tabData').classList.add('active');
+      byId('tabRules').classList.remove('active');
+      byId('tabVehicles').classList.remove('active');
+      byId('tabDrivers').classList.remove('active');
+      byId('tabAffiliates').classList.remove('active');
+      byId('dataPane').style.display='block';
+      byId('rulesPane').style.display='none';
+      byId('vehiclesPane').style.display='none';
+      byId('driversPane').style.display='none';
+      byId('affiliatesPane').style.display='none';
+    };
+    byId('tabAffiliates').onclick = () => {
+      byId('tabAffiliates').classList.add('active');
+      byId('tabData').classList.remove('active');
+      byId('tabRules').classList.remove('active');
+      byId('tabVehicles').classList.remove('active');
+      byId('tabDrivers').classList.remove('active');
+      byId('affiliatesPane').style.display='block';
+      byId('dataPane').style.display='none';
+      byId('rulesPane').style.display='none';
+      byId('vehiclesPane').style.display='none';
+      byId('driversPane').style.display='none';
+      loadAffiliates();
+    };
+    byId('btnLogout').onclick = () => { window.location.href = '/'; };
+    byId('btnDownloadWalkthrough').onclick = () => { window.location.href = API + '/api/walkthrough.pdf'; };
+    byId('btnDownloadAllMlData').onclick = () => { window.location.href = API + '/api/data/ml-training.csv'; };
+    byId('btnAffiliateSearch').onclick = async () => {
+      const q = (byId('affiliateQuery').value || '').trim();
+      if (!q) return;
+      const box = byId('affiliateSearchResults');
+      box.innerHTML = 'Searching...';
+      try {
+        const res = await fetch(API + '/api/affiliates/search?query=' + encodeURIComponent(q));
+        const data = await res.json().catch(() => ({ results: [] }));
+        box.innerHTML = '';
+        (data.results || []).forEach(r => {
+          const row = document.createElement('div');
+          row.className = 'row';
+          row.style.justifyContent = 'space-between';
+          row.style.padding = '.3rem 0';
+          row.innerHTML = '<div><strong>' + esc(r.name) + '</strong><div class="muted">' + esc(r.address || '') + '</div></div>';
+          const btn = document.createElement('button');
+          btn.className = 'secondary';
+          btn.textContent = 'Add affiliate';
+          btn.onclick = async () => {
+            const addRes = await fetch(API + '/api/affiliates', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(r)
+            });
+            if (!addRes.ok) return alert('Could not add affiliate center');
+            await loadAffiliates();
+          };
+          row.appendChild(btn);
+          box.appendChild(row);
+        });
+      } catch (e) {
+        box.innerHTML = '<span class="muted">Search failed: ' + esc(e.message) + '</span>';
+      }
+    };
+    byId('btnAddDirectAffiliate').onclick = async () => {
+      const maps_url = (byId('directAffiliateMapsUrl').value || '').trim();
+      if (!maps_url) {
+        return alert('Enter a Google Maps link.');
+      }
+      const payload = { maps_url };
+      const res = await fetch(API + '/api/affiliates/from-link', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) return alert('Could not add affiliate center');
+      byId('directAffiliateMapsUrl').value = '';
+      await loadAffiliates();
+    };
+
+    async function loadRuleVehicleList() {
+      const sel = byId('rulesVehicleSelect');
+      sel.innerHTML = '';
+      try {
+        const res = await fetch(API + '/api/vehicles/rules');
+        const list = await res.json().catch(() => []);
+        const o = document.createElement('option');
+        o.value = '';
+        o.textContent = '— Select vehicle rules —';
+        sel.appendChild(o);
+        list.forEach(v => {
+          const opt = document.createElement('option');
+          opt.value = JSON.stringify(v);
+          opt.textContent = [v.make, v.model, v.year, (v.trim_or_engine || '')].filter(Boolean).join(' ');
+          sel.appendChild(opt);
+        });
+      } catch (_) {}
+    }
+
+    function emptyRuleItem() {
+      return {
+        component: 'engine_oil',
+        action: 'check',
+        interval_distance_value: null,
+        interval_distance_unit: null,
+        interval_time_value: null,
+        interval_time_unit: null,
+        conditions: 'normal service',
+        found: true,
+        source_page: null,
+        source_quote: null,
+        source_url: null,
+        confidence: null
+      };
+    }
+
+    function renderRuleItem(item, section) {
+      const num = (v) => (v === '' || v === null || v === undefined) ? '' : String(v);
+      const el = document.createElement('div');
+      el.className = 'rule-item-card';
+      el.dataset.section = section;
+      el.innerHTML =
+        '<div class="rule-item-header"><strong>Rule item</strong><button type="button" class="btn-remove">Remove</button></div>' +
+        '<div class="row"><select class="rule-component"><option value="">—</option>' + COMPONENTS.map(c => '<option value="' + c + '"' + (item.component===c?' selected':'') + '>' + c + '</option>').join('') + '</select>' +
+        '<select class="rule-action">' + ACTIONS.map(a => '<option value="' + a + '"' + (item.action===a?' selected':'') + '>' + a + '</option>').join('') + '</select></div>' +
+        '<div class="row" style="margin-top:.35rem;"><input type="number" class="rule-dist-value" placeholder="Distance value" value="' + num(item.interval_distance_value) + '" step="100" />' +
+        '<select class="rule-dist-unit"><option value="">Distance unit</option>' + DISTANCE_UNITS.map(u => '<option value="' + u + '"' + (item.interval_distance_unit===u?' selected':'') + '>' + u + '</option>').join('') + '</select>' +
+        '<input type="number" class="rule-time-value" placeholder="Time value" value="' + num(item.interval_time_value) + '" step="0.5" />' +
+        '<select class="rule-time-unit"><option value="">Time unit</option>' + TIME_UNITS.map(u => '<option value="' + u + '"' + (item.interval_time_unit===u?' selected':'') + '>' + u + '</option>').join('') + '</select></div>' +
+        '<div class="row" style="margin-top:.35rem;"><input type="text" class="rule-conditions" placeholder="Conditions" value="' + esc(item.conditions || '') + '" />' +
+        '<input type="url" class="rule-source-url" placeholder="Source URL" value="' + esc(item.source_url || '') + '" /></div>' +
+        '<div class="row" style="margin-top:.35rem;"><input type="text" class="rule-source-quote" placeholder="Source quote" value="' + esc(item.source_quote || '') + '" /></div>';
+      el.querySelector('.btn-remove').onclick = () => el.remove();
+      return el;
+    }
+
+    function renderRulesGui(payload) {
+      byId('rulesEditorGui').style.display = 'block';
+      const normal = byId('ruleNormalList');
+      const severe = byId('ruleSevereList');
+      normal.innerHTML = '';
+      severe.innerHTML = '';
+      const normals = payload.service_schedule?.normal_service?.length ? payload.service_schedule.normal_service : [emptyRuleItem()];
+      const severes = payload.service_schedule?.severe_service?.length ? payload.service_schedule.severe_service : [emptyRuleItem()];
+      normals.forEach(it => normal.appendChild(renderRuleItem(it, 'normal')));
+      severes.forEach(it => severe.appendChild(renderRuleItem(it, 'severe')));
+    }
+
+    function collectRuleItems(containerId) {
+      const items = [];
+      byId(containerId).querySelectorAll('.rule-item-card').forEach(c => {
+        const numVal = (cls) => { const v = c.querySelector(cls).value.trim(); return v === '' ? null : parseFloat(v); };
+        const strVal = (cls) => (c.querySelector(cls).value || '').trim() || null;
+        items.push({
+          component: c.querySelector('.rule-component').value || 'engine_oil',
+          action: c.querySelector('.rule-action').value || 'check',
+          interval_distance_value: numVal('.rule-dist-value'),
+          interval_distance_unit: strVal('.rule-dist-unit'),
+          interval_time_value: numVal('.rule-time-value'),
+          interval_time_unit: strVal('.rule-time-unit'),
+          conditions: strVal('.rule-conditions'),
+          found: true,
+          source_page: null,
+          source_quote: strVal('.rule-source-quote'),
+          source_url: strVal('.rule-source-url'),
+          confidence: null
+        });
+      });
+      return items.filter(i => i.interval_distance_value != null || i.interval_time_value != null);
+    }
+
+    byId('btnAddRuleNormal').onclick = () => byId('ruleNormalList').appendChild(renderRuleItem(emptyRuleItem(), 'normal'));
+    byId('btnAddRuleSevere').onclick = () => byId('ruleSevereList').appendChild(renderRuleItem(emptyRuleItem(), 'severe'));
+
+    byId('btnLoadRuleGui').onclick = async () => {
+      const raw = byId('rulesVehicleSelect').value;
+      if (!raw) return;
+      try {
+        const v = JSON.parse(raw);
+        const qs = 'make=' + encodeURIComponent(v.make) + '&model=' + encodeURIComponent(v.model) + '&year=' + encodeURIComponent(v.year) + (v.trim_or_engine ? '&trim_or_engine=' + encodeURIComponent(v.trim_or_engine) : '');
+        const res = await fetch(API + '/api/rules?' + qs);
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.detail || res.statusText);
+        rulesEditorPayload = data;
+        renderRulesGui(data);
+        byId('rulesEditResult').textContent = 'Rules loaded.';
+      } catch (e) {
+        byId('rulesEditResult').textContent = 'Load failed: ' + e.message;
+      }
+    };
+
+    byId('btnSaveRuleGui').onclick = async () => {
+      try {
+        if (!rulesEditorPayload || !rulesEditorPayload.vehicle) {
+          byId('rulesEditResult').textContent = 'Load rules first.';
+          return;
+        }
+        const payload = {
+          ...rulesEditorPayload,
+          service_schedule: {
+            normal_service: collectRuleItems('ruleNormalList'),
+            severe_service: collectRuleItems('ruleSevereList')
+          }
+        };
+        const res = await fetch(API + '/api/rules/save', {
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.detail || res.statusText);
+        byId('rulesEditResult').textContent = 'Rules saved.';
+        await loadRuleVehicleList();
+      } catch (e) {
+        byId('rulesEditResult').textContent = 'Save failed: ' + e.message;
+      }
+    };
+
+    byId('btnScrapeRules').onclick = async () => {
+      const make = (byId('ruleMake').value || '').trim();
+      const model = (byId('ruleModel').value || '').trim();
+      const year = parseInt(byId('ruleYear').value, 10) || null;
+      const trim = (byId('ruleTrim').value || '').trim() || null;
+      const manualUrl = (byId('ruleManualUrl').value || '').trim() || null;
+      if (!make || !model || !year) {
+        byId('rulesScrapeResult').textContent = 'Enter make, model and year.';
+        return;
+      }
+      byId('rulesScrapeResult').textContent = 'Scraping rules...';
+      try {
+        const res = await fetch(API + '/api/manuals/find-and-extract', {
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({
+            vehicle: { make, model, year, trim_or_engine: trim },
+            manual_url: manualUrl
+          })
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.detail || res.statusText);
+        byId('rulesScrapeResult').textContent = 'Saved rules. normal=' + (data.normal_service_count || 0) + ', severe=' + (data.severe_service_count || 0);
+        await loadRuleVehicleList();
+      } catch (e) {
+        byId('rulesScrapeResult').textContent = 'Scrape failed: ' + e.message;
+      }
+    };
+
+    loadVehicles();
+    loadDrivers();
+    loadRuleVehicleList();
+  </script>
+</body>
+</html>

@@ -1,0 +1,23 @@
+{
+  "license_plate": "T15555",
+  "events": [
+    {
+      "card_id": "T15555-2026-04-07",
+      "produced_at": "2026-04-07T11:40:41.195014+00:00",
+      "mileage_km": 5200,
+      "items": {
+        "engine_oil": "routine",
+        "tire_rotation": "none"
+      }
+    },
+    {
+      "card_id": "T15555-2026-04-07-2",
+      "produced_at": "2026-04-07T11:40:41.203594+00:00",
+      "mileage_km": 5000.0,
+      "items": {
+        "engine_oil": "failure",
+        "tire_rotation": "none"
+      }
+    }
+  ]
+}

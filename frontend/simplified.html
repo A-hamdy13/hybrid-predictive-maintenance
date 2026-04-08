@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Simplified Maintenance Card</title>
+  <style>
+    :root {
+      --bg: #0f0f12;
+      --surface: #18181c;
+      --border: #2a2a30;
+      --text: #e4e4e7;
+      --muted: #71717a;
+      --accent: #3b82f6;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--text); }
+    .page { max-width: 98vw; margin: 0 auto; padding: 1rem 1.25rem 2rem; }
+    h1 { margin: 0 0 0.5rem; font-size: 1.2rem; }
+    .muted { color: var(--muted); font-size: 0.9rem; }
+    .table-wrap { margin-top: 1rem; overflow: auto; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 0.5rem; }
+    table { width: max-content; min-width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+    th, td { border: 1px solid var(--border); padding: 0.35rem; text-align: left; vertical-align: middle; white-space: nowrap; }
+    thead th { position: sticky; top: 0; background: #22252c; z-index: 2; }
+    select { width: 100%; min-width: 92px; padding: 0.25rem 0.35rem; background: #121318; color: var(--text); border: 1px solid var(--border); border-radius: 4px; }
+    button { margin-top: 0.5rem; padding: 0.45rem 0.6rem; background: var(--accent); color: white; border: none; border-radius: 6px; cursor: pointer; }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <div style="display:flex; align-items:center; justify-content:space-between; gap:0.5rem;">
+      <h1 id="pageTitle">Simplified Maintenance Card</h1>
+      <div id="uiLanguageButtons" style="display:flex; gap:0.35rem;">
+        <button type="button" class="lang-btn" data-lang="en" style="width:auto; margin-top:0;">EN</button>
+        <button type="button" class="lang-btn" data-lang="ar" style="width:auto; margin-top:0;">AR</button>
+        <button type="button" class="lang-btn" data-lang="hi" style="width:auto; margin-top:0;">HI</button>
+      </div>
+    </div>
+    <div class="muted" id="meta"></div>
+    <div>
+      <button type="button" id="btnBack">Back</button>
+      <button type="button" id="btnRefresh">Refresh</button>
+    </div>
+    <div id="wrap" class="table-wrap"></div>
+  </div>
+
+  <script>
+    const API = window.location.origin;
+    const q = new URLSearchParams(window.location.search);
+    const licensePlate = q.get('license_plate') || '';
+    const readonly = q.get('readonly') === '1';
+    const UI_LANG_KEY = 'driver_ui_language';
+    const UI_TEXT = {
+      en: { title: 'Simplified Maintenance Card', back: 'Back', refresh: 'Refresh', noPlate: 'No license_plate provided.', meta: 'Vehicle: {plate} | 500 km intervals{extra}', readOnly: ' | read-only' },
+      ar: { title: 'بطاقة صيانة مبسطة', back: 'رجوع', refresh: 'تحديث', noPlate: 'لم يتم توفير license_plate.', meta: 'المركبة: {plate} | فواصل 500 كم{extra}', readOnly: ' | للقراءة فقط' },
+      hi: { title: 'सरलीकृत मेंटेनेंस कार्ड', back: 'वापस', refresh: 'रीफ्रेश', noPlate: 'कोई license_plate प्रदान नहीं किया गया।', meta: 'वाहन: {plate} | 500 किमी अंतराल{extra}', readOnly: ' | केवल-पढ़ने योग्य' }
+    };
+    let currentUiLanguage = 'en';
+    const byId = (id) => document.getElementById(id);
+    const esc = (v) => {
+      const d = document.createElement('div');
+      d.textContent = v == null ? '' : String(v);
+      return d.innerHTML;
+    };
+
+    function t(key, vars) {
+      const dict = UI_TEXT[currentUiLanguage] || UI_TEXT.en;
+      let text = dict[key] || UI_TEXT.en[key] || key;
+      if (vars) {
+        Object.keys(vars).forEach((k) => {
+          text = text.replaceAll('{' + k + '}', String(vars[k]));
+        });
+      }
+      return text;
+    }
+
+    function setUiLanguage(lang) {
+      currentUiLanguage = UI_TEXT[lang] ? lang : 'en';
+      document.documentElement.lang = currentUiLanguage;
+      document.documentElement.dir = currentUiLanguage === 'ar' ? 'rtl' : 'ltr';
+      localStorage.setItem(UI_LANG_KEY, currentUiLanguage);
+      document.querySelectorAll('.lang-btn[data-lang]').forEach((btn) => {
+        const active = btn.getAttribute('data-lang') === currentUiLanguage;
+        btn.style.background = active ? 'var(--accent)' : '#121318';
+        btn.style.color = '#fff';
+        btn.style.border = active ? 'none' : '1px solid var(--border)';
+      });
+      byId('pageTitle').textContent = t('title');
+      byId('btnBack').textContent = t('back');
+      byId('btnRefresh').textContent = t('refresh');
+      byId('meta').textContent = t('meta', { plate: licensePlate, extra: readonly ? t('readOnly') : '' });
+    }
+
+    async function load() {
+      if (!licensePlate) {
+        byId('meta').textContent = t('noPlate');
+        return;
+      }
+      byId('meta').textContent = t('meta', { plate: licensePlate, extra: readonly ? t('readOnly') : '' });
+      const res = await fetch(API + '/api/vehicles/' + encodeURIComponent(licensePlate) + '/maintenance-simplified-table?interval_km=500');
+      const data = await res.json().catch(() => ({ columns: [], rows: [] }));
+      const cols = data.columns || [];
+      const rows = data.rows || [];
+      let html = '<table><thead><tr><th>Part</th><th>Recommended service interval: time</th><th>Recommended service interval: mileage</th>';
+      cols.forEach(c => html += '<th>' + esc(c.column_label) + '</th>');
+      html += '</tr></thead><tbody>';
+      rows.forEach(r => {
+        html += '<tr><td>' + esc(r.part_label) + '</td><td>' + esc(r.recommended_service_interval_time || '—') + '</td><td>' + esc(r.recommended_service_interval_mileage || '—') + '</td>';
+        cols.forEach(c => {
+          const v = ((r.values || {})[String(c.bucket_km)] ?? (r.values || {})[c.bucket_km] ?? 'none');
+          html += '<td><select data-part-id="' + esc(r.part_id) + '" data-bucket-km="' + c.bucket_km + '"' + (readonly ? ' disabled' : '') + '><option value="none"' + (v === 'none' ? ' selected' : '') + '>none</option><option value="routine"' + (v === 'routine' ? ' selected' : '') + '>routine</option><option value="failure"' + (v === 'failure' ? ' selected' : '') + '>failure</option></select></td>';
+        });
+        html += '</tr>';
+      });
+      html += '</tbody></table>';
+      byId('wrap').innerHTML = html;
+
+      if (readonly) return;
+      byId('wrap').querySelectorAll('select[data-part-id][data-bucket-km]').forEach(sel => {
+        sel.onchange = async () => {
+          await fetch(API + '/api/vehicles/' + encodeURIComponent(licensePlate) + '/maintenance-simplified-cell', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              part_id: sel.getAttribute('data-part-id'),
+              bucket_km: parseInt(sel.getAttribute('data-bucket-km'), 10),
+              status: sel.value
+            })
+          });
+        };
+      });
+    }
+
+    byId('btnBack').onclick = () => {
+      if (window.history.length > 1) window.history.back();
+      else window.location.href = '/driver';
+    };
+    byId('btnRefresh').onclick = load;
+    const langFromQuery = (q.get('ui_language') || '').trim();
+    setUiLanguage(langFromQuery || localStorage.getItem(UI_LANG_KEY) || 'en');
+    document.querySelectorAll('.lang-btn[data-lang]').forEach((btn) => {
+      btn.onclick = () => setUiLanguage(btn.getAttribute('data-lang') || 'en');
+    });
+    load();
+  </script>
+</body>
+</html>
