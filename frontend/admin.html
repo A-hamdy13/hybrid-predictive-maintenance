@@ -503,7 +503,15 @@ D001,Jane Smith,+1-555-0100</pre>
       try {
         const res = await fetch(API + '/api/affiliates/search?query=' + encodeURIComponent(q));
         const data = await res.json().catch(() => ({ results: [] }));
+        if (!res.ok) {
+          box.innerHTML = '<span class="muted">Search failed: ' + esc(data.detail || res.statusText) + '</span>';
+          return;
+        }
         box.innerHTML = '';
+        if (!(data.results || []).length) {
+          box.innerHTML = '<span class="muted">No results found for this query.</span>';
+          return;
+        }
         (data.results || []).forEach(r => {
           const row = document.createElement('div');
           row.className = 'row';
