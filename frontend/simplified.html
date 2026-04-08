@@ -48,6 +48,7 @@
     const API = window.location.origin;
     const q = new URLSearchParams(window.location.search);
     const licensePlate = q.get('license_plate') || '';
+    const driverId = q.get('driver_id') || '';
     const readonly = q.get('readonly') === '1';
     const UI_LANG_KEY = 'driver_ui_language';
     const UI_TEXT = {
@@ -132,8 +133,10 @@
     }
 
     byId('btnBack').onclick = () => {
-      if (window.history.length > 1) window.history.back();
-      else window.location.href = '/driver';
+      const p = new URLSearchParams();
+      if (driverId) p.set('driver_id', driverId);
+      if (licensePlate) p.set('license_plate', licensePlate);
+      window.location.href = '/driver' + (p.toString() ? ('?' + p.toString()) : '');
     };
     byId('btnRefresh').onclick = load;
     const langFromQuery = (q.get('ui_language') || '').trim();
