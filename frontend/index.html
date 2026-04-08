@@ -157,7 +157,7 @@
       <button type="button" id="btnLogout" class="secondary" style="width:auto; margin-top:0;">Logout</button>
     </div>
   </div>
-  <section>
+  <section style="display:none;">
     <label id="lblDriverLogin">Driver login</label>
     <div class="row" style="align-items:center;">
       <select id="driverSelect"></select>
@@ -372,7 +372,6 @@
     const API = window.location.origin;
     const byId = (id) => document.getElementById(id);
     const UI_LANG_KEY = 'driver_ui_language';
-    const DRIVER_SESSION_KEY = 'driver_logged_in_id';
     const UI_TEXT = {
       en: {
         appTitle: 'Hybrid Predictive Maintenance',
@@ -697,11 +696,7 @@
       if (currentVehicle && byId('selectedVehicleLabel').style.display !== 'none') {
         byId('selectedVehicleLabel').textContent = t('vehicleLabel') + ': ' + [currentVehicle.make, currentVehicle.model, currentVehicle.year].filter(Boolean).join(' ') + (currentVehicle.trim_or_engine ? ' (' + currentVehicle.trim_or_engine + ')' : '');
       }
-      const loginText = byId('driverLoginLabel').textContent || '';
-      if (loginText.startsWith('Logged in as')) {
-        const label = byId('driverSelect').selectedOptions[0]?.textContent || currentDriverId || '';
-        byId('driverLoginLabel').textContent = 'Logged in as: ' + label;
-      }
+      // Driver selection UI is disabled; authentication is session-based.
       const mileageEl = byId('maintenanceCurrentMileage');
       if (mileageEl && (mileageEl.textContent || '').includes(':')) {
         const raw = mileageEl.textContent.split(':').slice(1).join(':').trim() || '—';
@@ -1416,49 +1411,29 @@
     const qp = new URLSearchParams(window.location.search);
     const requestedLicensePlate = (qp.get('license_plate') || '').trim().toUpperCase();
 
-    async function loadDriversForLogin() {
-      const sel = byId('driverSelect');
-      sel.innerHTML = '<option value="">— Select driver —</option>';
+    async function initDriverSession() {
       try {
-        const res = await fetch(API + '/api/drivers');
-        const data = await res.json().catch(() => ({ drivers: [] }));
-        (data.drivers || []).forEach(d => {
-          const o = document.createElement('option');
-          o.value = d.driver_id;
-          o.textContent = d.name + ' (' + d.driver_id + ')';
-          sel.appendChild(o);
-        });
-        const storedDriverId = (localStorage.getItem(DRIVER_SESSION_KEY) || '').trim();
-        if (storedDriverId && (data.drivers || []).some((d) => d.driver_id === storedDriverId)) {
-          currentDriverId = storedDriverId;
-          sel.value = storedDriverId;
-          const label = sel.selectedOptions[0]?.textContent || storedDriverId;
-          byId('driverLoginLabel').textContent = 'Logged in as: ' + label;
-          byId('driverLoginLabel').style.display = 'block';
-          await loadLicensePlateList();
-          if (requestedLicensePlate) {
-            byId('licensePlateSelect').value = requestedLicensePlate;
-            await onLicensePlateChange();
-          }
+        const res = await fetch(API + '/api/auth/me');
+        const me = await res.json().catch(() => ({}));
+        if (!res.ok || !me.driver_id) {
+          window.location.href = '/';
+          return;
         }
-      } catch (_) {}
+        currentDriverId = me.driver_id;
+        byId('driverLoginLabel').textContent = 'Logged in as: ' + currentDriverId;
+        byId('driverLoginLabel').style.display = 'block';
+        await loadLicensePlateList();
+        if (requestedLicensePlate) {
+          byId('licensePlateSelect').value = requestedLicensePlate;
+          await onLicensePlateChange();
+        }
+      } catch (_) {
+        window.location.href = '/';
+      }
     }
-
-    byId('btnDriverLogin').onclick = async () => {
-      const id = (byId('driverSelect').value || '').trim();
-      if (!id) return;
-      currentDriverId = id;
-      localStorage.setItem(DRIVER_SESSION_KEY, id);
-      const label = byId('driverSelect').selectedOptions[0]?.textContent || id;
-      byId('driverLoginLabel').textContent = 'Logged in as: ' + label;
-      byId('driverLoginLabel').style.display = 'block';
-      await loadLicensePlateList();
-      byId('licensePlateSelect').value = '';
-      onLicensePlateChange();
-    };
     byId('btnLogout').onclick = () => {
-      localStorage.removeItem(DRIVER_SESSION_KEY);
-      window.location.href = '/';
+      fetch(API + '/api/auth/logout', { method: 'POST' })
+        .finally(() => { window.location.href = '/'; });
     };
     byId('btnDownloadWalkthrough').onclick = () => {
       window.location.href = API + '/api/walkthrough.pdf';
@@ -1782,8 +1757,7 @@
       btn.onclick = () => setUiLanguage(btn.getAttribute('data-lang') || 'en');
     });
 
-    loadDriversForLogin();
-    loadLicensePlateList();
+    initDriverSession();
     loadVehicleList();
   </script>
 </body>

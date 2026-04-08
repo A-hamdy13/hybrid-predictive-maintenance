@@ -5,12 +5,13 @@ import sys
 import csv
 import io
 import re
+import secrets
 from urllib.parse import unquote
 from pathlib import Path
 from datetime import datetime, timezone
 import requests
 
-from fastapi import FastAPI, HTTPException, UploadFile, File
+from fastapi import FastAPI, HTTPException, UploadFile, File, Request, Response
 
 log = logging.getLogger(__name__)
 
@@ -37,6 +38,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.responses import StreamingResponse
 from fastapi.responses import HTMLResponse
+from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
 
 from config import OPENAI_API_KEY, DATA_DIR, GOOGLE_PLACES_API_KEY, SCRAPED_MANUALS_DIR
@@ -106,6 +108,8 @@ from schemas import (
 
 app = FastAPI(title="Hybrid Predictive Maintenance (Manual + ML)")
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
+DRIVER_SESSION_COOKIE = "driver_session"
+_DRIVER_SESSIONS: dict[str, str] = {}
 
 
 # --- Demo vehicles ---
@@ -625,20 +629,48 @@ def api_drivers_list():
 
 
 @app.post("/api/auth/login")
-def api_auth_login(body: dict):
+def api_auth_login(body: dict, response: Response):
     username = (body.get("username") or "").strip()
     password = body.get("password") or ""
     if username.lower() == "admin" and password == "admin123":
         return {"ok": True, "role": "admin", "redirect_to": "/admin"}
     driver = verify_driver_login(username, password)
     if driver:
+        token = secrets.token_urlsafe(32)
+        _DRIVER_SESSIONS[token] = driver["driver_id"]
+        response.set_cookie(
+            key=DRIVER_SESSION_COOKIE,
+            value=token,
+            httponly=True,
+            samesite="lax",
+            secure=True,
+            max_age=60 * 60 * 12,
+        )
         return {
             "ok": True,
             "role": "driver",
             "driver_id": driver["driver_id"],
-            "redirect_to": f"/driver?driver_id={driver['driver_id']}",
+            "redirect_to": "/driver",
         }
     raise HTTPException(status_code=401, detail="Invalid credentials")
+
+
+@app.post("/api/auth/logout")
+def api_auth_logout(request: Request, response: Response):
+    token = request.cookies.get(DRIVER_SESSION_COOKIE)
+    if token:
+        _DRIVER_SESSIONS.pop(token, None)
+    response.delete_cookie(DRIVER_SESSION_COOKIE)
+    return {"ok": True}
+
+
+@app.get("/api/auth/me")
+def api_auth_me(request: Request):
+    token = request.cookies.get(DRIVER_SESSION_COOKIE)
+    driver_id = _DRIVER_SESSIONS.get(token or "")
+    if not driver_id:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    return {"ok": True, "role": "driver", "driver_id": driver_id}
 
 
 @app.post("/api/drivers")
@@ -683,7 +715,11 @@ def api_vehicle_drivers_assign(license_plate: str, body: dict):
 
 
 @app.get("/api/drivers/{driver_id}/vehicles")
-def api_driver_vehicles(driver_id: str):
+def api_driver_vehicles(driver_id: str, request: Request):
+    token = request.cookies.get(DRIVER_SESSION_COOKIE)
+    session_driver_id = _DRIVER_SESSIONS.get(token or "")
+    if session_driver_id and session_driver_id != driver_id:
+        raise HTTPException(status_code=403, detail="Forbidden")
     return {"driver_id": driver_id, "license_plates": vehicles_for_driver(driver_id)}
 
 
@@ -713,11 +749,32 @@ def api_affiliates_search(query: str):
     # Absolute search by query text only; no user/location proximity bias.
     url = "https://maps.googleapis.com/maps/api/place/textsearch/json"
     params = {"query": query, "key": GOOGLE_PLACES_API_KEY}
+    log.info("[affiliates.search] query=%r", query)
     try:
         resp = requests.get(url, params=params, timeout=8)
+        log.info("[affiliates.search] http_status=%s", resp.status_code)
         resp.raise_for_status()
         data = resp.json()
+        log.info(
+            "[affiliates.search] google_status=%s results=%s error_message=%r",
+            data.get("status"),
+            len(data.get("results") or []),
+            data.get("error_message"),
+        )
+        if data.get("status") not in ("OK", "ZERO_RESULTS"):
+            log.warning(
+                "[affiliates.search] non_ok_status=%s payload=%r",
+                data.get("status"),
+                str(data)[:1200],
+            )
     except Exception as e:
+        body = ""
+        if "resp" in locals():
+            try:
+                body = resp.text[:1200]
+            except Exception:
+                body = ""
+        log.exception("[affiliates.search] request_failed error=%r body=%r", e, body)
         raise HTTPException(status_code=500, detail=f"Google Places search failed: {e}")
     out = []
     for r in (data.get("results") or [])[:10]:
@@ -1587,7 +1644,10 @@ if FRONTEND_DIR.exists():
         return FileResponse(FRONTEND_DIR / "admin.html")
 
     @app.get("/driver")
-    def driver():
+    def driver(request: Request):
+        token = request.cookies.get(DRIVER_SESSION_COOKIE)
+        if not _DRIVER_SESSIONS.get(token or ""):
+            return RedirectResponse(url="/")
         return FileResponse(FRONTEND_DIR / "index.html")
 
     @app.get("/simplified")
