@@ -1,6 +1,7 @@
 # API & server
 fastapi==0.115.6
 uvicorn[standard]==0.32.1
+python-multipart>=0.0.9
 
 # OpenAI (v2 required for Responses API + web_search)
 openai>=2.0,<3
